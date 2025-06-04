@@ -10,6 +10,11 @@
         input, textarea { width: 100%; padding: 0.5em; margin-top: 0.2em; }
         button { margin-top: 1em; padding: 0.7em 1.5em; }
         #respuesta { margin-top: 2em; background: #f4f4f4; padding: 1em; border-radius: 8px; }
+        .destino { margin-top: 1.5em; padding: 1em; background: #e9f5ff; border-radius: 8px; }
+        .dia { margin-top: 1em; padding: 0.7em; background: #fff; border-radius: 6px; border-left: 4px solid #2196f3; }
+        .actividad { margin-left: 1em; margin-top: 0.5em; }
+        .transporte { margin-top: 1em; padding: 0.5em; background: #f9fbe7; border-radius: 6px; border-left: 4px solid #8bc34a; }
+        h2, h3, h4 { margin-bottom: 0.3em; }
     </style>
 </head>
 <body>
@@ -24,7 +29,37 @@
         <button type="submit">Generar Itinerario</button>
     </form>
     <div id="respuesta"></div>
+    
     <script>
+        function renderItinerario(data) {
+            let html = `<h2>${data.nombre_viaje}</h2>`;
+            html += `<p><b>Destino general:</b> ${data.destino_general}</p>`;
+            html += `<p><b>Cantidad de días:</b> ${data.cantidad_dias}</p>`;
+            if (data.destinos && data.destinos.length > 0) {
+                html += `<h3>Destinos</h3>`;
+                data.destinos.forEach((destino, idx) => {
+                    html += `<div class="destino"><h4>Destino ${idx + 1} - Días: ${destino.cantidad_dias_en_destino}</h4>`;
+                    if (destino.dias_destino && destino.dias_destino.length > 0) {
+                        destino.dias_destino.forEach(dia => {
+                            html += `<div class="dia"><b>Día ${dia.posicion_dia}</b><ul>`;
+                            dia.actividades.forEach(act => {
+                                html += `<li class="actividad"><b>${act.nombre}:</b> ${act.descripcion}</li>`;
+                            });
+                            html += `</ul></div>`;
+                        });
+                    }
+                    html += `</div>`;
+                });
+            }
+            if (data.transportes_entre_destinos && data.transportes_entre_destinos.length > 0) {
+                html += `<h3>Transportes entre destinos</h3>`;
+                data.transportes_entre_destinos.forEach(t => {
+                    html += `<div class="transporte">De <b>${t.origen}</b> a <b>${t.destino}</b> en <b>${t.tipo}</b></div>`;
+                });
+            }
+            return html;
+        }
+
         document.getElementById('itinerarioForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const form = e.target;
@@ -40,7 +75,7 @@
                     body: JSON.stringify(data)
                 });
                 const result = await response.json();
-                document.getElementById('respuesta').innerText = JSON.stringify(result, null, 2);
+                document.getElementById('respuesta').innerHTML = renderItinerario(result);
             } catch (err) {
                 document.getElementById('respuesta').innerText = 'Error al llamar a la API: ' + err;
             }
