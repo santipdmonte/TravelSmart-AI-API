@@ -16,6 +16,7 @@ class DiaDestinoState(BaseModel):
     actividades: list[ActividadState]
 
 class DestinoState(BaseModel):
+    nombre_destino: str
     cantidad_dias_en_destino: int
     dias_destino: List[DiaDestinoState] 
 

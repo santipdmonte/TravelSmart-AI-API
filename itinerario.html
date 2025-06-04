@@ -14,7 +14,11 @@
         .dia { margin-top: 1em; padding: 0.7em; background: #fff; border-radius: 6px; border-left: 4px solid #2196f3; }
         .actividad { margin-left: 1em; margin-top: 0.5em; }
         .transporte { margin-top: 1em; padding: 0.5em; background: #f9fbe7; border-radius: 6px; border-left: 4px solid #8bc34a; }
+        .resumen-destinos { margin-top: 2em; padding: 1em; background: #fff3e0; border-radius: 8px; border-left: 4px solid #ff9800; }
         h2, h3, h4 { margin-bottom: 0.3em; }
+        .toggle-json { margin-top: 2em; }
+        .toggle-btn { background: #2196f3; color: #fff; border: none; padding: 0.5em 1em; border-radius: 5px; cursor: pointer; }
+        .json-raw { display: none; margin-top: 1em; background: #222; color: #fff; padding: 1em; border-radius: 8px; font-size: 0.95em; overflow-x: auto; }
     </style>
 </head>
 <body>
@@ -29,8 +33,12 @@
         <button type="submit">Generar Itinerario</button>
     </form>
     <div id="respuesta"></div>
-    
+    <div class="toggle-json" style="display:none;">
+        <button type="button" class="toggle-btn" onclick="toggleJson()">Mostrar JSON</button>
+        <pre class="json-raw" id="jsonRaw"></pre>
+    </div>
     <script>
+        let lastResult = null;
         function renderItinerario(data) {
             let html = `<h2>${data.nombre_viaje}</h2>`;
             html += `<p><b>Destino general:</b> ${data.destino_general}</p>`;
@@ -38,12 +46,12 @@
             if (data.destinos && data.destinos.length > 0) {
                 html += `<h3>Destinos</h3>`;
                 data.destinos.forEach((destino, idx) => {
-                    html += `<div class="destino"><h4>Destino ${idx + 1} - Días: ${destino.cantidad_dias_en_destino}</h4>`;
+                    html += `<div class=\"destino\"><h4>Destino ${idx + 1}: ${destino.nombre_destino ? destino.nombre_destino : '(Sin nombre)'} - Días: ${destino.cantidad_dias_en_destino}</h4>`;
                     if (destino.dias_destino && destino.dias_destino.length > 0) {
                         destino.dias_destino.forEach(dia => {
-                            html += `<div class="dia"><b>Día ${dia.posicion_dia}</b><ul>`;
+                            html += `<div class=\"dia\"><b>Día ${dia.posicion_dia}</b><ul>`;
                             dia.actividades.forEach(act => {
-                                html += `<li class="actividad"><b>${act.nombre}:</b> ${act.descripcion}</li>`;
+                                html += `<li class=\"actividad\"><b>${act.nombre}:</b> ${act.descripcion}</li>`;
                             });
                             html += `</ul></div>`;
                         });
@@ -54,10 +62,30 @@
             if (data.transportes_entre_destinos && data.transportes_entre_destinos.length > 0) {
                 html += `<h3>Transportes entre destinos</h3>`;
                 data.transportes_entre_destinos.forEach(t => {
-                    html += `<div class="transporte">De <b>${t.origen}</b> a <b>${t.destino}</b> en <b>${t.tipo}</b></div>`;
+                    html += `<div class=\"transporte\">De <b>${t.origen}</b> a <b>${t.destino}</b> en <b>${t.tipo}</b></div>`;
                 });
             }
+            // Resumen de destinos al final
+            if (data.destinos && data.destinos.length > 0) {
+                html += `<div class=\"resumen-destinos\"><h3>Resumen de destinos visitados</h3><ul>`;
+                data.destinos.forEach((destino, idx) => {
+                    html += `<li><b>${destino.nombre_destino ? destino.nombre_destino : 'Destino ' + (idx + 1)}</b> (${destino.cantidad_dias_en_destino} días)</li>`;
+                });
+                html += `</ul></div>`;
+            }
             return html;
+        }
+
+        function toggleJson() {
+            const pre = document.getElementById('jsonRaw');
+            const btn = document.querySelector('.toggle-btn');
+            if (pre.style.display === 'block') {
+                pre.style.display = 'none';
+                btn.textContent = 'Mostrar JSON crudo';
+            } else {
+                pre.style.display = 'block';
+                btn.textContent = 'Ocultar JSON crudo';
+            }
         }
 
         document.getElementById('itinerarioForm').addEventListener('submit', async function(e) {
@@ -75,9 +103,16 @@
                     body: JSON.stringify(data)
                 });
                 const result = await response.json();
+                lastResult = result;
                 document.getElementById('respuesta').innerHTML = renderItinerario(result);
+                // Mostrar toggle y ocultar JSON crudo al principio
+                document.querySelector('.toggle-json').style.display = 'block';
+                document.getElementById('jsonRaw').style.display = 'none';
+                document.querySelector('.toggle-btn').textContent = 'Mostrar JSON crudo';
+                document.getElementById('jsonRaw').textContent = JSON.stringify(result, null, 2);
             } catch (err) {
                 document.getElementById('respuesta').innerText = 'Error al llamar a la API: ' + err;
+                document.querySelector('.toggle-json').style.display = 'none';
             }
         });
     </script>
