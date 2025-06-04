@@ -28,7 +28,7 @@ def generar_plan_viaje(state: ViajeStateInput):
     results = structured_llm.invoke(
         [
             SystemMessage(content="Eres un experto en planificación de viajes"),
-            HumanMessage(content=f"Genera un plan de viaje para {state.destino} con {state.cantidad_dias} días. Incluye actividades diarias detalladas.")
+            HumanMessage(content=f"Genera un plan de viaje para {state.nombre_viaje} con {state.cantidad_dias} días. Incluye actividades diarias detalladas.")
         ]
     )
 
