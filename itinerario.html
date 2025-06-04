@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generar Itinerario de Viaje</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; }
+        label { display: block; margin-top: 1em; }
+        input, textarea { width: 100%; padding: 0.5em; margin-top: 0.2em; }
+        button { margin-top: 1em; padding: 0.7em 1.5em; }
+        #respuesta { margin-top: 2em; background: #f4f4f4; padding: 1em; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Generar Itinerario de Viaje</h1>
+    <form id="itinerarioForm">
+        <label>Destino:
+            <input type="text" name="destino" required>
+        </label>
+        <label>Cantidad de días:
+            <input type="number" name="cantidad_dias" min="1" required>
+        </label>
+        <label>Fecha de inicio:
+            <input type="date" name="fecha_inicio" required>
+        </label>
+        <label>Fecha de fin:
+            <input type="date" name="fecha_fin" required>
+        </label>
+        <label>Días destino (JSON):
+            <textarea name="dias_destino" rows="4" placeholder='Ejemplo: [{"posicion_dia": 1, "actividades": []}]' required></textarea>
+        </label>
+        <button type="submit">Generar Itinerario</button>
+    </form>
+    <div id="respuesta"></div>
+    <script>
+        document.getElementById('itinerarioForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const data = {
+                destino: form.destino.value,
+                cantidad_dias: parseInt(form.cantidad_dias.value),
+                fecha_inicio: form.fecha_inicio.value,
+                fecha_fin: form.fecha_fin.value,
+                dias_destino: []
+            };
+            try {
+                data.dias_destino = JSON.parse(form.dias_destino.value);
+            } catch (err) {
+                document.getElementById('respuesta').innerText = 'Error en el formato de Días destino (debe ser JSON válido)';
+                return;
+            }
+            document.getElementById('respuesta').innerText = 'Generando...';
+            try {
+                const response = await fetch('/itinerario', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                document.getElementById('respuesta').innerText = JSON.stringify(result, null, 2);
+            } catch (err) {
+                document.getElementById('respuesta').innerText = 'Error al llamar a la API: ' + err;
+            }
+        });
+    </script>
+</body>
+</html> 
