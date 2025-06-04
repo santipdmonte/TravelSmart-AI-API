@@ -15,20 +15,11 @@
 <body>
     <h1>Generar Itinerario de Viaje</h1>
     <form id="itinerarioForm">
-        <label>Destino:
-            <input type="text" name="destino" required>
+        <label>Nombre del viaje:
+            <input type="text" name="nombre_viaje" required>
         </label>
         <label>Cantidad de días:
             <input type="number" name="cantidad_dias" min="1" required>
-        </label>
-        <label>Fecha de inicio:
-            <input type="date" name="fecha_inicio" required>
-        </label>
-        <label>Fecha de fin:
-            <input type="date" name="fecha_fin" required>
-        </label>
-        <label>Días destino (JSON):
-            <textarea name="dias_destino" rows="4" placeholder='Ejemplo: [{"posicion_dia": 1, "actividades": []}]' required></textarea>
         </label>
         <button type="submit">Generar Itinerario</button>
     </form>
@@ -38,18 +29,9 @@
             e.preventDefault();
             const form = e.target;
             const data = {
-                destino: form.destino.value,
-                cantidad_dias: parseInt(form.cantidad_dias.value),
-                fecha_inicio: form.fecha_inicio.value,
-                fecha_fin: form.fecha_fin.value,
-                dias_destino: []
+                nombre_viaje: form.nombre_viaje.value,
+                cantidad_dias: parseInt(form.cantidad_dias.value)
             };
-            try {
-                data.dias_destino = JSON.parse(form.dias_destino.value);
-            } catch (err) {
-                document.getElementById('respuesta').innerText = 'Error en el formato de Días destino (debe ser JSON válido)';
-                return;
-            }
             document.getElementById('respuesta').innerText = 'Generando...';
             try {
                 const response = await fetch('/itinerario', {
