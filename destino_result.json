@@ -1,0 +1,53 @@
+{
+    "nombre_destino": "Atenas",
+    "cantidad_dias_en_destino": 3,
+    "dias_destino": [
+      {
+        "posicion_dia": 1,
+        "actividades": [
+          {
+            "nombre": "Visita a la Acrópolis",
+            "descripcion": "Explora la famosa Acrópolis de Atenas, incluyendo el Partenón y el Templo de Atenea."
+          },
+          {
+            "nombre": "Museo de la Acrópolis",
+            "descripcion": "Visita el museo que alberga artefactos de la Acrópolis y aprende sobre la historia de Atenas."
+          },
+          {
+            "nombre": "Paseo por Plaka",
+            "descripcion": "Disfruta de un paseo por el encantador barrio de Plaka, lleno de tiendas y restaurantes."
+          }
+        ]
+      },
+      {
+        "posicion_dia": 2,
+        "actividades": [
+          {
+            "nombre": "Excursión a Cabo Sounion",
+            "descripcion": "Visita el Templo de Poseidón en Cabo Sounion y disfruta de las vistas al mar Egeo."
+          },
+          {
+            "nombre": "Cena en un restaurante local",
+            "descripcion": "Prueba la auténtica comida griega en un restaurante tradicional."
+          }
+        ]
+      },
+      {
+        "posicion_dia": 3,
+        "actividades": [
+          {
+            "nombre": "Visita al Mercado Central de Atenas",
+            "descripcion": "Explora el mercado y prueba productos locales."
+          },
+          {
+            "nombre": "Subida al Monte Licabeto",
+            "descripcion": "Sube al monte Licabeto para disfrutar de una vista panorámica de Atenas."
+          },
+          {
+            "nombre": "Espectáculo de danza griega",
+            "descripcion": "Asiste a un espectáculo de danza tradicional griega por la noche."
+          }
+        ]
+      }
+    ]
+  }

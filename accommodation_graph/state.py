@@ -1,13 +1,12 @@
 from typing import List, Optional
 from pydantic import BaseModel
-from state import DiaDestinoState
+from state import DestinoState
 
-class AlojamientoInputState(BaseModel):
-    destino: str
-    cantidad_dias: int
-    dias_destino: List[DiaDestinoState]
+class AlojamientoStateInput(BaseModel):
+    destino: DestinoState   # nombre_destino, cantidad_dias_en_destino, dias_destino
     fecha_inicio: str
-    fecha_fin: str
+    cantidad_adultos: int
+    cantidad_ninos: int
 
 class AlojamientoState(BaseModel):
     pass
