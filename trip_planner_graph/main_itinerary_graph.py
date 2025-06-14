@@ -1,6 +1,7 @@
 from langgraph.graph import START, END, StateGraph
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
+from langgraph.checkpoint.memory import MemorySaver
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,7 +11,7 @@ from state import (
     ViajeStateInput,
 )
 
-def generar_plan_viaje(state: ViajeStateInput):
+def generate_main_itinerary(state: ViajeStateInput):
     """Generar el plan de viaje
     
     Args:
@@ -37,13 +38,15 @@ def generar_plan_viaje(state: ViajeStateInput):
 
 # Add nodes
 builder = StateGraph(ViajeState, input=ViajeStateInput)
-builder.add_node("generar_plan_viaje", generar_plan_viaje)
+builder.add_node("generate_main_itinerary", generate_main_itinerary)
 
 # Add edges
-builder.add_edge(START, "generar_plan_viaje")
-builder.add_edge("generar_plan_viaje", END)
+builder.add_edge(START, "generate_main_itinerary")
+builder.add_edge("generate_main_itinerary", END)
 
-graph = builder.compile()
+checkpointer = MemorySaver()
+
+main_itinerary_graph = builder.compile() #checkpointer=checkpointer)
 
 
 # input_state = ViajeStateInput(
