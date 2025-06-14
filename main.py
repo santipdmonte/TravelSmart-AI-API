@@ -63,7 +63,7 @@ def modificar_itinerario(prompt: str):
 
 
 
-from trip_planner_graph.HIL_test import graph
+from trip_planner_graph.HIL_graph import graph
 from langgraph.types import Command
 
 @app.post("/initialize_graph")

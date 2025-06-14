@@ -24,8 +24,8 @@ def modify_itinerary(state: ViajeStateModify):
     model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
     # model = ChatOpenAI(model="o4-mini-2025-04-16")
 
-    structured_llm = model.with_structured_output(ViajeState)
-    results = structured_llm.invoke(
+    # structured_llm = model.with_structured_output(ViajeState)
+    results = model.invoke(
         [
             SystemMessage(content=f"""
                 Eres un experto en ajustar itinerarios de viajes segun las necesidades del usuario. 
