@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HIL Demo</title>
+
+</head>
+<body>
+    <h1>TravelSmart Demo</h1>
+    <section>
+        <h2>Initialize Graph</h2>
+        <form id="HILForm">
+            <label for="thread_id">Thread ID:</label>
+            <input type="text" id="thread_id" name="thread_id" required>
+            <button type="submit">Initialize Graph</button>
+        </form>
+        <div id="respuesta"></div>
+    </section>
+
+    <section id="feedbackSection" style="display: none;">
+        <h2>Travel Agent Interface</h2>
+        <div class="main-container">
+            <!-- Left Side: Itinerary State -->
+            <div class="itinerary-panel">
+                <h3>📋 Itinerary State</h3>
+                <div id="itineraryContent">No state loaded.</div>
+                <div id="finalView" style="display: none;">
+                    <h3>✅ Final Itinerary</h3>
+                    <p>Itinerary confirmed successfully!</p>
+                </div>
+            </div>
+            
+            <!-- Right Side: Chat Interface -->
+            <div class="chat-panel">
+                <h3>💬 Conversation</h3>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="welcome-message">Welcome! Start by initializing the graph above.</div>
+                </div>
+                
+                <!-- Normal Mode Controls -->
+                <div id="userFeedbackControls">
+                    <div class="chat-input">
+                        <form id="userFeedbackForm">
+                            <div class="input-group">
+                                <input type="text" id="user_feedback" name="user_feedback" placeholder="Type your message..." required>
+                                <button type="submit">Send</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- HIL Mode Controls -->
+                <div id="hilModeControls" style="display: none;">
+                    <div class="hil-message" id="hilMessage">
+                        <p>Agent is waiting for confirmation...</p>
+                    </div>
+                    <div class="hil-controls">
+                        <button id="hilConfirmBtn" type="button">✅ Sí</button>
+                        <button id="hilRejectBtn" type="button">❌ No</button>
+                        <div class="hil-custom-response">
+                            <form id="hilCustomForm">
+                                <div class="input-group">
+                                    <input type="text" id="hil_custom_response" name="hil_custom_response" placeholder="Custom response...">
+                                    <button type="submit">Send</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <style>
+        body {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1em;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 2em;
+            height: 80vh;
+        }
+        
+        .itinerary-panel {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 1.5em;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            overflow-y: auto;
+        }
+        
+        .chat-panel {
+            flex: 1;
+            background: #ffffff;
+            padding: 1.5em;
+            border-radius: 12px;
+            border: 2px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1em;
+            margin-bottom: 1em;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+        }
+        
+        .welcome-message {
+            color: #6c757d;
+            font-style: italic;
+            text-align: center;
+            padding: 2em;
+        }
+        
+        .chat-input {
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 0;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 0.8em 1em;
+            border: none;
+            border-radius: 8px 0 0 8px;
+            font-size: 1em;
+        }
+        
+        .input-group button {
+            padding: 0.8em 1.5em;
+            border: none;
+            background: #007bff;
+            color: white;
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        
+        .input-group button:hover {
+            background: #0056b3;
+        }
+        
+        .chat-message {
+            margin-bottom: 1em;
+            padding: 0.8em;
+            border-radius: 8px;
+            border-left: 4px solid #dee2e6;
+        }
+        
+        .bot-message {
+            background: #e8f5e8;
+            border-left-color: #28a745;
+        }
+        
+        .user-message {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+        }
+        
+        .hil-message-chat {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        
+        .system-message {
+            background: #f8f9fa;
+            border-left-color: #6c757d;
+            font-style: italic;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.4em;
+            font-size: 0.9em;
+        }
+        
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.8em;
+        }
+        
+        .message-content {
+            line-height: 1.4;
+        }
+        #itineraryContent {
+            background: white;
+            padding: 1em;
+            border-radius: 8px;
+            margin: 1em 0;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            max-height: none;
+        }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .error {
+            color: red;
+            background: #ffe6e6;
+            padding: 0.5em;
+            border-radius: 4px;
+            margin: 0.5em 0;
+        }
+        .success {
+            color: green;
+            background: #e6ffe6;
+            padding: 0.5em;
+            border-radius: 4px;
+            margin: 0.5em 0;
+        }
+        .info {
+            color: blue;
+            background: #e6f3ff;
+            padding: 0.5em;
+            border-radius: 4px;
+            margin: 0.5em 0;
+        }
+        .hil-message {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 1em;
+            border-radius: 8px;
+            margin-bottom: 1em;
+        }
+        .hil-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8em;
+        }
+        .hil-controls > button {
+            padding: 0.8em 1.5em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+        }
+        #hilConfirmBtn {
+            background: #28a745;
+            color: white;
+        }
+        #hilConfirmBtn:hover {
+            background: #218838;
+        }
+        #hilRejectBtn {
+            background: #dc3545;
+            color: white;
+        }
+        #hilRejectBtn:hover {
+            background: #c82333;
+        }
+        .hil-custom-response {
+            background: #f8f9fa;
+            padding: 1em;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            margin-top: 0.5em;
+        }
+        #hilModeControls {
+            background: #e3f2fd;
+            padding: 1.2em;
+            border-radius: 12px;
+            border: 2px solid #2196f3;
+        }
+    </style>
+
+    <script>
+        let currentThreadId = '';
+        let currentState = null;
+
+        // Function to add messages to chat area
+        function addMessageToChat(sender, message, messageClass = 'chat-message') {
+            const chatMessages = document.getElementById('chatMessages');
+            const welcomeMessage = chatMessages.querySelector('.welcome-message');
+            
+            // Remove welcome message if it exists
+            if (welcomeMessage) {
+                welcomeMessage.remove();
+            }
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${messageClass}`;
+            
+            const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <strong>${sender}</strong>
+                    <span class="timestamp">${timestamp}</span>
+                </div>
+                <div class="message-content">${message}</div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Function to add user message to chat
+        function addUserMessage(message) {
+            addMessageToChat('👤 You', message, 'user-message');
+        }
+
+        // Initialize Graph
+        document.getElementById('HILForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const threadId = document.getElementById('thread_id').value.trim();
+            if (!threadId) {
+                showMessage('Please enter a valid Thread ID', 'error');
+                return;
+            }
+
+            currentThreadId = threadId;
+            
+            try {
+                showMessage('Initializing graph...', 'loading');
+                
+                const response = await fetch(`/initialize_graph?thread_id=${encodeURIComponent(threadId)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                currentState = result;
+                
+                showMessage('Graph initialized successfully!', 'success');
+                
+                // Add initialization message to chat
+                addMessageToChat('🔧 System', 'Graph initialized successfully! You can now start chatting.', 'system-message');
+                
+                displayState(result);
+                document.getElementById('feedbackSection').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(`Error initializing graph: ${error.message}`, 'error');
+            }
+        });
+
+        // User Feedback Form
+        document.getElementById('userFeedbackForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userFeedback = document.getElementById('user_feedback').value.trim();
+            if (!userFeedback) {
+                showMessage('Please enter your feedback', 'error');
+                return;
+            }
+
+            // Add user message to chat
+            addUserMessage(userFeedback);
+            
+            await sendUserResponse(userFeedback);
+            document.getElementById('user_feedback').value = '';
+        });
+
+        // HIL Mode Controls
+        document.getElementById('hilConfirmBtn').addEventListener('click', async function() {
+            addUserMessage('HIL Response: ✅ Sí');
+            await sendUserHILResponse('s');
+        });
+
+        document.getElementById('hilRejectBtn').addEventListener('click', async function() {
+            addUserMessage('HIL Response: ❌ No');
+            await sendUserHILResponse('no');
+        });
+
+        document.getElementById('hilCustomForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const customResponse = document.getElementById('hil_custom_response').value.trim();
+            if (!customResponse) {
+                showMessage('Please enter a custom response', 'error');
+                return;
+            }
+
+            // Add user HIL response to chat
+            addUserMessage(`HIL Response: ${customResponse}`);
+            
+            await sendUserHILResponse(customResponse);
+            document.getElementById('hil_custom_response').value = '';
+        });
+
+        async function sendUserResponse(userMessage) {
+            if (!currentThreadId) {
+                showMessage('No active thread. Please initialize the graph first.', 'error');
+                return;
+            }
+
+            try {
+                showMessage('Sending message...', 'loading');
+                
+                const response = await fetch(`/user_response?thread_id=${encodeURIComponent(currentThreadId)}&user_response=${encodeURIComponent(userMessage)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                currentState = result;
+                
+                showMessage('Message sent successfully!', 'success');
+                displayState(result);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(`Error sending message: ${error.message}`, 'error');
+            }
+        }
+
+        async function sendUserHILResponse(hilResponse) {
+            if (!currentThreadId) {
+                showMessage('No active thread. Please initialize the graph first.', 'error');
+                return;
+            }
+
+            try {
+                showMessage('Sending HIL response...', 'loading');
+                
+                const response = await fetch(`/user_HIL_response?thread_id=${encodeURIComponent(currentThreadId)}&user_HIL_response=${encodeURIComponent(hilResponse)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                currentState = result;
+                
+                showMessage('HIL response sent successfully!', 'success');
+                
+                // Display the new state - it will automatically handle mode transition
+                displayState(result);
+                
+                // If we're back to normal mode after HIL, show a transition message
+                if (result.mode === 'normal') {
+                    showMessage('Returning to normal conversation mode', 'info');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(`Error sending HIL response: ${error.message}`, 'error');
+            }
+        }
+
+        function displayState(state) {
+            const itineraryContent = document.getElementById('itineraryContent');
+            const userFeedbackControls = document.getElementById('userFeedbackControls');
+            const hilModeControls = document.getElementById('hilModeControls');
+            const finalView = document.getElementById('finalView');
+            
+            // Handle HIL mode
+            if (state.mode === 'hil') {
+                // Display the state information in left panel
+                const stateDisplay = {
+                    "State": state.state,
+                    "Mode": "🔄 Human in the Loop - Waiting for confirmation"
+                };
+                itineraryContent.textContent = JSON.stringify(stateDisplay, null, 2);
+                
+                // Show HIL controls and hide normal feedback controls
+                userFeedbackControls.style.display = 'none';
+                hilModeControls.style.display = 'block';
+                finalView.style.display = 'none';
+                
+                // Update HIL message display
+                const hilMessageElement = document.getElementById('hilMessage');
+                hilMessageElement.innerHTML = `<p><strong>🤖 Agent:</strong> ${state.hil_message}</p>`;
+                
+                // Add HIL message to chat area
+                addMessageToChat('🤖 Agent', state.hil_message, 'hil-message-chat');
+                
+                return;
+            }
+            
+            // Handle normal mode structured response (from /initialize_graph and /user_response)
+            if (state.mode === 'normal' && state.state && state.chatbot_response !== undefined) {
+                // Display the state information in left panel
+                const stateDisplay = {
+                    "State": state.state,
+                    "Mode": "💬 Normal Conversation"
+                };
+                itineraryContent.textContent = JSON.stringify(stateDisplay, null, 2);
+                
+                // Show normal feedback controls and hide HIL controls
+                userFeedbackControls.style.display = 'block';
+                hilModeControls.style.display = 'none';
+                finalView.style.display = 'none';
+                
+                // Add chatbot response to chat area (only if not empty)
+                if (state.chatbot_response && state.chatbot_response.trim() !== '') {
+                    addMessageToChat('🤖 Bot', state.chatbot_response, 'bot-message');
+                }
+                
+                return;
+            }
+            
+            // Handle old structure or unrecognized format (fallback)
+            // Display the full state as JSON for debugging
+            itineraryContent.textContent = JSON.stringify(state, null, 2);
+            
+            // For old structure responses, always show normal controls and hide HIL
+            userFeedbackControls.style.display = 'block';
+            hilModeControls.style.display = 'none';
+            
+            // Check if workflow is complete (next array is empty)
+            const isComplete = Array.isArray(state[1]) && state[1].length === 0;
+            
+            if (isComplete) {
+                // Hide feedback controls and show final view
+                userFeedbackControls.style.display = 'none';
+                finalView.style.display = 'block';
+                
+                // Clear any existing final itinerary content
+                const existingFinalDiv = finalView.querySelector('.final-itinerary-content');
+                if (existingFinalDiv) {
+                    existingFinalDiv.remove();
+                }
+                
+                // Display the final itinerary
+                if (state[0] && state[0].itinerary) {
+                    const finalItineraryDiv = document.createElement('div');
+                    finalItineraryDiv.className = 'final-itinerary-content';
+                    finalItineraryDiv.style.background = 'white';
+                    finalItineraryDiv.style.padding = '1em';
+                    finalItineraryDiv.style.borderRadius = '4px';
+                    finalItineraryDiv.style.marginTop = '1em';
+                    finalItineraryDiv.textContent = state[0].itinerary;
+                    finalView.appendChild(finalItineraryDiv);
+                }
+                
+                showMessage('Workflow completed successfully!', 'success');
+            } else {
+                // Show feedback controls
+                userFeedbackControls.style.display = 'block';
+                finalView.style.display = 'none';
+                
+                // Extract and display human feedback message if available
+                if (state[6] && Array.isArray(state[6]) && state[6].length > 0) {
+                    const humanFeedbackInfo = state[6][0];
+                    if (humanFeedbackInfo && humanFeedbackInfo[4] && humanFeedbackInfo[4][0] && humanFeedbackInfo[4][0].value) {
+                        const feedbackMessage = humanFeedbackInfo[4][0].value;
+                        showMessage(`System: ${feedbackMessage}`, 'info');
+                    }
+                }
+            }
+        }
+
+        function showMessage(message, type = 'info') {
+            const respuesta = document.getElementById('respuesta');
+            respuesta.className = type;
+            respuesta.textContent = message;
+            
+            // Clear loading state
+            if (type !== 'loading') {
+                document.body.classList.remove('loading');
+            } else {
+                document.body.classList.add('loading');
+            }
+        }
+    </script>
+</body>
+</html> 
