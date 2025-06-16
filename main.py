@@ -62,9 +62,15 @@ def modificar_itinerario(prompt: str):
     return result
 
 
+# HIL Flow
 
 from trip_planner_graph.HIL_graph import graph
 from langgraph.types import Command
+
+@app.get("/HIL", response_class=HTMLResponse)
+def home():
+    with open("HIL.html", encoding="utf-8") as f:
+        return f.read()
 
 @app.post("/initialize_graph")
 def initialize_graph(thread_id: str):
@@ -80,9 +86,9 @@ def initialize_graph(thread_id: str):
         "user_feedback": "False"
     }
 
-    state = graph.invoke(initial_input, config=config)
+    graph.invoke(initial_input, config=config)
 
-    return state
+    return graph.get_state(config)
 
 
 @app.post("/user_feedback")
