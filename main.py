@@ -311,7 +311,7 @@ def get_state(thread_id: str):
         }
     }
 
-    return graph.get_state(config)
+    return agent.get_state(config)
 
 
 
