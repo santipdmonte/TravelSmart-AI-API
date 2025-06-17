@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧭 Clasificador de Viajeros - TravelSmart AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .question-container {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .question-container.active {
+            display: block;
+        }
+
+        .question-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .question-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+
+        .question-text {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2c3e50;
+            line-height: 1.4;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .option-card {
+            background: #f8f9fa;
+            border: 3px solid transparent;
+            border-radius: 15px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .option-card.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #5a67d8;
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        .option-emoji {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .option-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .option-description {
+            font-size: 0.95rem;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+
+        .option-card.selected .option-description {
+            opacity: 0.9;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 40px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .results-container {
+            display: none;
+            text-align: center;
+        }
+
+        .results-container.show {
+            display: block;
+            animation: fadeIn 0.8s ease-in;
+        }
+
+        .primary-profile {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+        }
+
+        .profile-emoji {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .profile-name {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .profile-percentage {
+            font-size: 1.5rem;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .profile-description {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .secondary-profile {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .secondary-profile .profile-emoji {
+            font-size: 2.5rem;
+        }
+
+        .secondary-profile .profile-name {
+            font-size: 1.5rem;
+            color: #495057;
+        }
+
+        .detailed-scores {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .score-item:last-child {
+            border-bottom: none;
+        }
+
+        .score-bar {
+            flex: 1;
+            height: 8px;
+            background: #f1f3f4;
+            border-radius: 4px;
+            margin: 0 15px;
+            overflow: hidden;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+
+        .restart-btn {
+            margin-top: 30px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .quiz-container {
+                padding: 25px;
+                margin: 10px;
+            }
+
+            .options-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .option-card {
+                padding: 20px;
+            }
+
+            .question-text {
+                font-size: 1.5rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧭 Clasificador de Viajeros</h1>
+            <p>Descubre tu estilo de viaje perfecto</p>
+        </div>
+
+        <div class="quiz-container">
+            <!-- Progress Bar -->
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <!-- Loading State -->
+            <div class="loading" id="loadingState">
+                <div class="spinner"></div>
+                <p>Cargando preguntas...</p>
+            </div>
+
+            <!-- Questions will be dynamically loaded here -->
+            <div id="questionsContainer"></div>
+
+            <!-- Navigation -->
+            <div class="navigation" id="navigation" style="display: none;">
+                <button class="btn btn-secondary" id="prevBtn" onclick="previousQuestion()">
+                    ← Anterior
+                </button>
+                <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" disabled>
+                    Siguiente →
+                </button>
+            </div>
+
+            <!-- Results Container -->
+            <div class="results-container" id="resultsContainer">
+                <div id="resultsContent"></div>
+                <button class="btn btn-primary restart-btn" onclick="restartQuiz()">
+                    🔄 Realizar Test Nuevamente
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let questions = [];
+        let currentQuestion = 0;
+        let answers = {};
+        const API_BASE = 'http://127.0.0.1:8000/traveler-classifier';
+
+        // Initialize quiz
+        async function initQuiz() {
+            try {
+                showLoading(true);
+                const response = await fetch(`${API_BASE}/questions`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    questions = data.data;
+                    renderQuestions();
+                    showLoading(false);
+                    document.getElementById('navigation').style.display = 'flex';
+                    updateProgress();
+                } else {
+                    throw new Error(data.message || 'Error loading questions');
+                }
+            } catch (error) {
+                console.error('Error loading questions:', error);
+                document.getElementById('loadingState').innerHTML = `
+                    <div style="color: #dc3545;">
+                        <h3>❌ Error al cargar las preguntas</h3>
+                        <p>${error.message}</p>
+                        <button class="btn btn-primary" onclick="initQuiz()">Reintentar</button>
+                    </div>
+                `;
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingState').classList.toggle('show', show);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+
+            questions.forEach((question, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = `question-container ${index === 0 ? 'active' : ''}`;
+                
+                questionDiv.innerHTML = `
+                    <div class="question-header">
+                        <div class="question-number">Pregunta ${index + 1} de ${questions.length}</div>
+                        <div class="question-text">${question.text}</div>
+                    </div>
+                    <div class="options-grid">
+                        ${question.options.map(option => `
+                            <div class="option-card" onclick="selectOption('${question.id}', '${option.value}', this)">
+                                <span class="option-emoji">${option.emoji}</span>
+                                <div class="option-title">${option.title}</div>
+                                <div class="option-description">${option.description}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(questionDiv);
+            });
+        }
+
+        function selectOption(questionId, value, element) {
+            // Remove selection from siblings
+            const siblings = element.parentNode.children;
+            Array.from(siblings).forEach(sibling => {
+                sibling.classList.remove('selected');
+            });
+            
+            // Add selection to clicked element
+            element.classList.add('selected');
+            
+            // Store answer
+            answers[questionId] = value;
+            
+            // Enable next button
+            document.getElementById('nextBtn').disabled = false;
+            
+            // Auto-advance after a short delay
+            setTimeout(() => {
+                if (currentQuestion < questions.length - 1) {
+                    nextQuestion();
+                } else {
+                    // Last question - change button text
+                    document.getElementById('nextBtn').innerHTML = '🎯 Ver Resultados';
+                }
+            }, 800);
+        }
+
+        function nextQuestion() {
+            if (currentQuestion < questions.length - 1) {
+                // Move to next question
+                document.querySelectorAll('.question-container')[currentQuestion].classList.remove('active');
+                currentQuestion++;
+                document.querySelectorAll('.question-container')[currentQuestion].classList.add('active');
+                
+                // Update navigation
+                document.getElementById('prevBtn').disabled = false;
+                document.getElementById('nextBtn').disabled = !answers[questions[currentQuestion].id];
+                
+                // Update progress
+                updateProgress();
+            } else {
+                // Submit answers
+                submitAnswers();
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestion > 0) {
+                document.querySelectorAll('.question-container')[currentQuestion].classList.remove('active');
+                currentQuestion--;
+                document.querySelectorAll('.question-container')[currentQuestion].classList.add('active');
+                
+                // Update navigation
+                document.getElementById('prevBtn').disabled = currentQuestion === 0;
+                document.getElementById('nextBtn').disabled = false;
+                document.getElementById('nextBtn').innerHTML = currentQuestion === questions.length - 1 ? '🎯 Ver Resultados' : 'Siguiente →';
+                
+                // Update progress
+                updateProgress();
+            }
+        }
+
+        function updateProgress() {
+            const progress = ((currentQuestion + 1) / questions.length) * 100;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+        }
+
+        async function submitAnswers() {
+            try {
+                showLoading(true);
+                document.getElementById('navigation').style.display = 'none';
+                document.getElementById('questionsContainer').style.display = 'none';
+                
+                const response = await fetch(`${API_BASE}/classify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ answers })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(data.data);
+                } else {
+                    throw new Error(data.message || 'Error classifying traveler');
+                }
+            } catch (error) {
+                console.error('Error submitting answers:', error);
+                document.getElementById('loadingState').innerHTML = `
+                    <div style="color: #dc3545;">
+                        <h3>❌ Error al procesar respuestas</h3>
+                        <p>${error.message}</p>
+                        <button class="btn btn-primary" onclick="restartQuiz()">Reintentar</button>
+                    </div>
+                `;
+            }
+        }
+
+        function displayResults(results) {
+            showLoading(false);
+            
+            const primary = results.primary_profile;
+            const secondary = results.secondary_profile;
+            const scores = results.detailed_scores;
+            
+            let resultsHTML = `
+                <div class="primary-profile">
+                    <span class="profile-emoji">${primary.emoji}</span>
+                    <div class="profile-name">${primary.name}</div>
+                    <div class="profile-percentage">${primary.percentage}% de afinidad</div>
+                    <div class="profile-description">${primary.description}</div>
+                </div>
+            `;
+            
+            if (secondary) {
+                resultsHTML += `
+                    <div class="secondary-profile">
+                        <span class="profile-emoji">${secondary.emoji}</span>
+                        <div class="profile-name">${secondary.name}</div>
+                        <div class="profile-percentage">${secondary.percentage}% de afinidad</div>
+                        <div class="profile-description">${secondary.description}</div>
+                    </div>
+                `;
+            }
+            
+            // Detailed scores
+            resultsHTML += `
+                <div class="detailed-scores">
+                    <h3 style="margin-bottom: 20px; color: #495057;">📊 Puntuación Detallada</h3>
+            `;
+            
+            // Profile names mapping
+            const profileNames = {
+                'adventurer': '🏞 El Aventurero',
+                'wellness': '🧘‍♀️ El Viajero Wellness',
+                'cultural': '🏛 El Explorador Cultural',
+                'gastronomic': '🍷 El Viajero Gastronómico',
+                'urbanite': '🛍 El Urbanita Cosmopolita',
+                'family': '👨‍👩‍👧‍👦 El Viajero Familiar'
+            };
+            
+            Object.entries(scores)
+                .sort(([,a], [,b]) => b - a)
+                .forEach(([type, score]) => {
+                    resultsHTML += `
+                        <div class="score-item">
+                            <span>${profileNames[type] || type}</span>
+                            <div class="score-bar">
+                                <div class="score-fill" style="width: ${score}%"></div>
+                            </div>
+                            <span style="font-weight: 600;">${score.toFixed(1)}%</span>
+                        </div>
+                    `;
+                });
+            
+            resultsHTML += '</div>';
+            
+            document.getElementById('resultsContent').innerHTML = resultsHTML;
+            document.getElementById('resultsContainer').classList.add('show');
+            
+            // Animate score bars
+            setTimeout(() => {
+                document.querySelectorAll('.score-fill').forEach(bar => {
+                    const width = bar.style.width;
+                    bar.style.width = '0%';
+                    setTimeout(() => {
+                        bar.style.width = width;
+                    }, 100);
+                });
+            }, 500);
+        }
+
+        function restartQuiz() {
+            // Reset all variables
+            currentQuestion = 0;
+            answers = {};
+            
+            // Reset UI
+            document.getElementById('resultsContainer').classList.remove('show');
+            document.getElementById('questionsContainer').style.display = 'block';
+            document.getElementById('navigation').style.display = 'flex';
+            
+            // Reset questions
+            document.querySelectorAll('.question-container').forEach((q, index) => {
+                q.classList.toggle('active', index === 0);
+                // Remove all selections
+                q.querySelectorAll('.option-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+            });
+            
+            // Reset navigation
+            document.getElementById('prevBtn').disabled = true;
+            document.getElementById('nextBtn').disabled = true;
+            document.getElementById('nextBtn').innerHTML = 'Siguiente →';
+            
+            // Reset progress
+            updateProgress();
+        }
+
+        // Initialize quiz when page loads
+        window.addEventListener('load', initQuiz);
+    </script>
+</body>
+</html>

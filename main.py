@@ -5,14 +5,23 @@ from state import ViajeState, ViajeStateInput, ViajeStateModify
 # from accommodation_graph.accommodation_graph import accommodation_graph
 from trip_planner_graph.main_itinerary_graph import main_itinerary_graph
 from trip_planner_graph.modify_itinerary_graph import modify_itinerary_graph
+from traveler_classifier.travel_classifier_routes import travel_classifier_router
 import uvicorn
 import json
 
 app = FastAPI()
 
+# Incluir rutas del clasificador de viajeros
+app.include_router(travel_classifier_router)
+
 @app.get("/", response_class=HTMLResponse)
 def home():
     with open("itinerario.html", encoding="utf-8") as f:
+        return f.read()
+
+@app.get("/traveler-classifier-test", response_class=HTMLResponse)
+def traveler_classifier_test():
+    with open("traveler_classifier/traveler_classifier_template.html", encoding="utf-8") as f:
         return f.read()
 
 @app.post("/itinerario")
