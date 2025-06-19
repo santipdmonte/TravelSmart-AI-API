@@ -6,6 +6,8 @@ from state import ViajeState, ViajeStateInput, ViajeStateModify
 from trip_planner_graph.main_itinerary_graph import main_itinerary_graph
 from trip_planner_graph.modify_itinerary_graph import modify_itinerary_graph
 from traveler_classifier.travel_classifier_routes import travel_classifier_router
+from document_analyzer.a03_document_analyzer_router import document_analyzer_router
+
 import uvicorn
 import json
 
@@ -13,6 +15,7 @@ app = FastAPI()
 
 # Incluir rutas del clasificador de viajeros
 app.include_router(travel_classifier_router)
+app.include_router(document_analyzer_router)
 
 @app.get("/", response_class=HTMLResponse)
 def home():
