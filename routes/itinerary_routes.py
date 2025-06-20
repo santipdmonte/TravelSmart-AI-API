@@ -20,19 +20,11 @@ def home():
 @itinerary_router.post("/generate_itinerary")
 def generar_itinerario(input_state: ViajeStateInput):
 
-    config = {
-        "configurable": {
-            "thread_id": "1"  
-        }
-    }
+    result = main_itinerary_graph.invoke(input_state)
 
-    result = main_itinerary_graph.invoke(input_state) #, config=config)
+    print(f"Result: {result}")
 
     return result
-
-    # with open("itinerario_result.json", encoding="utf-8") as f:
-    #     data = json.load(f)
-    # return data
 
 
 # Itinerary Agent

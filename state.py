@@ -33,7 +33,7 @@ class ViajeState(BaseModel):
     # presupuesto: Optional[int] = None
     # estacion: Optional[str] = None  # Estacion de Año (Verano, Otoño, Invierno, Primavera)
     destinos: List[DestinoState]
-    transportes_entre_destinos: Optional[List[TransporteEntreDestinosState]] = None
+    # transportes_entre_destinos: Optional[List[TransporteEntreDestinosState]] = None
 
 class ViajeStateModify(BaseModel):
     itinerario_actual: ViajeState
