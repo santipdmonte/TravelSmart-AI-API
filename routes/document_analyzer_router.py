@@ -4,7 +4,7 @@ Routes for the document analyzer graph
 """
 
 from fastapi import APIRouter
-from document_analyzer.a02_document_analyzer_graph import graph
+from graphs.document_analyzer_graph import graph
 from langgraph.types import Command
 
 document_analyzer_router = APIRouter(prefix="/document", tags=["Document Analyzer"])
@@ -26,7 +26,7 @@ def initialize_graph(thread_id: str):
 
     return {"message": "Graph initialized"}
 
-@document_analyzer_router.post("/user_HIL_response")
+@document_analyzer_router.post("/HIL_response")
 def user_HIL_response(thread_id: str, user_HIL_response: str):
 
     config = {"configurable": {"thread_id": thread_id}}

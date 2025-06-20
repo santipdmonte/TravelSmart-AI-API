@@ -113,7 +113,7 @@ tools = [apply_itinerary_modifications]
 
 
 # ==== Create agents ====
-agent = create_react_agent(
+itinerary_agent = create_react_agent(
     model,
     tools=tools,
     prompt=prompt,

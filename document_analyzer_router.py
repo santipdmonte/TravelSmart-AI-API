@@ -4,7 +4,7 @@ Routes for the document analyzer graph
 """
 
 from fastapi import APIRouter
-from document_analyzer.a02_document_analyzer_graph import graph
+from graphs.document_analyzer_graph import graph
 from langgraph.types import Command
 
 document_analyzer_router = APIRouter(prefix="/document", tags=["Document Analyzer"])

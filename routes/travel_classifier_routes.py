@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
-from traveler_classifier.traveler_classifier_services import TravelerClassifierService, TravelerType
+from services.traveler_classifier_services import TravelerClassifierService, TravelerType
+from fastapi.responses import HTMLResponse
 
 # Crear router para las rutas del clasificador de viajeros
 travel_classifier_router = APIRouter(prefix="/traveler-classifier", tags=["Traveler Classifier"])
@@ -30,6 +31,11 @@ class ApiResponse(BaseModel):
     data: Any = None
     message: str
     error: Optional[str] = None
+
+@travel_classifier_router.get("/", response_class=HTMLResponse)
+def traveler_classifier_page():
+    with open("traveler_classifier/traveler_classifier_template.html", encoding="utf-8") as f:
+        return f.read()
 
 @travel_classifier_router.get("/questions")
 async def get_questions():
