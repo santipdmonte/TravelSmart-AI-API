@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional
 from graphs.main_itinerary_graph import main_itinerary_graph
 from graphs.itinerary_agent_graph import itinerary_agent
 from langgraph.types import Command
-from state import ViajeStateInput
+from state import ViajeStateInput, ViajeState
 from fastapi.responses import HTMLResponse
 from utils.utils import extract_chatbot_message, detect_hil_mode
 
@@ -31,6 +31,8 @@ def generate_itinerary(input_state: ViajeStateInput):
 
 @itinerary_router.post("/initialize_graph")
 def initialize_graph(thread_id: str):
+# def initialize_graph(thread_id: str, itinerary_state: ViajeState):
+
 
     config = {
         "configurable": {
@@ -39,6 +41,7 @@ def initialize_graph(thread_id: str):
     }
 
     initial_state = {
+        # "itinerary": itinerary_state,
         "itinerary": "Viaje a la playa",
         "user_name": "Juan",
         "user_id": "user_123",

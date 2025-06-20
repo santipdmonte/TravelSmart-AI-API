@@ -6,11 +6,9 @@ This graph is used to create a react agent with a custom state and tools.
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.config import get_stream_writer
 from langgraph.prebuilt.chat_agent_executor import AgentState
 from langchain_core.messages import AnyMessage
 from typing import Annotated
-from langgraph.prebuilt import InjectedState
 
 from langmem.short_term import SummarizationNode
 from langchain_core.messages.utils import count_tokens_approximately
@@ -20,27 +18,28 @@ from langchain_core.tools import InjectedToolCallId
 from langgraph.types import Command
 from langchain_core.messages import ToolMessage
 
+from state import ViajeState
+
 from langgraph.types import interrupt
 
 
 # Define model and checkpointer
 model = ChatOpenAI(model="gpt-4o-mini")
 checkpointer = MemorySaver()
-config = {"configurable": {"thread_id": "6"}}
-
 
 # ==== Custom state ====
 summarization_node = SummarizationNode( 
     token_counter=count_tokens_approximately,
     model=model,
-    max_tokens=384,
-    max_summary_tokens=128,
+    max_tokens=1500,
+    max_summary_tokens=500,
     output_messages_key="llm_input_messages",
 )
 
 
 class CustomState(AgentState):
     context: dict[str, Any]  # Used to store context of the summarization_node, to prevent the need of summarizing the context in all the runs
+    # itinerary: ViajeState
     itinerary: str
     user_name: str
     user_id: str
@@ -64,6 +63,7 @@ def prompt(
 # ==== Tools ====
 def apply_itinerary_modifications(
     tool_call_id: Annotated[str, InjectedToolCallId],
+    # new_itinerary: ViajeState,
     new_itinerary: str,
     new_itinerary_modifications_summary: str,
     # Itinerary: ItineraryState
@@ -119,28 +119,5 @@ itinerary_agent = create_react_agent(
     prompt=prompt,
     checkpointer=checkpointer,
     state_schema=CustomState,
-    pre_model_hook=summarization_node, 
+    # pre_model_hook=summarization_node, 
 )
-
-# ==== Invoke agent ====
-# initial_state = {
-#     "itinerary": "Viaje a la playa",
-#     "user_name": "Juan",
-#     "user_id": "user_123",
-#     "messages": [{"role": "user", "content": "Quiero que mi itinerario ahora sea 'Viaje a la montaña'"}]
-# }
-
-# response = agent.invoke(
-#     initial_state,
-#     config=config,
-# )
-
-# print(agent.get_state(config))
-
-# print(response)
-# print(response.get("itinerary"))
-
-# response = agent.invoke(Command(resume={"messages": "si"}), config=config)
-
-# print(response)
-# print(response.get("itinerary"))
