@@ -18,7 +18,7 @@ def home():
         return f.read()
 
 @itinerary_router.post("/generate_itinerary")
-def generar_itinerario(input_state: ViajeStateInput):
+def generate_itinerary(input_state: ViajeStateInput):
 
     result = main_itinerary_graph.invoke(input_state)
 
