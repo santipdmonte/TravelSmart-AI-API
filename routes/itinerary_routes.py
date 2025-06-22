@@ -7,7 +7,8 @@ from langgraph.types import Command
 from state import ViajeStateInput, ViajeState
 from fastapi.responses import HTMLResponse
 from utils.utils import extract_chatbot_message, detect_hil_mode
-
+import traceback
+from fastapi import HTTPException
 
 # Crear router para las rutas del clasificador de viajeros
 itinerary_router = APIRouter(prefix="/itinerary", tags=["Itinerary"])
@@ -19,12 +20,25 @@ def home():
 
 @itinerary_router.post("/generate_itinerary")
 def generate_itinerary(input_state: ViajeStateInput):
+    print("--- Endpoint /generate_itinerary RECIBIÓ UNA LLAMADA ---")
+    try:
+        # Intentamos ejecutar la lógica original
+        result = main_itinerary_graph.invoke(input_state)
+        print(f"Resultado del grafo: {result}")
+        return result
 
-    result = main_itinerary_graph.invoke(input_state)
-
-    print(f"Result: {result}")
-
-    return result
+    except Exception as e:
+        # ¡AQUÍ CAPTURAREMOS CUALQUIER ERROR!
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("¡¡¡ SE HA PRODUCIDO UN ERROR DENTRO DEL ENDPOINT !!!")
+        
+        # Imprimimos el error detallado (traceback) en la consola
+        traceback.print_exc()
+        
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        
+        # Le devolvemos un error 500 a Postman con el mensaje del error
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # Itinerary Agent

@@ -18,5 +18,13 @@ def home():
     with open("index.html", encoding="utf-8") as f:
         return f.read()
 
+# --- BLOQUE DE CÓDIGO PARA DEPURACIÓN ---
+# print("--- RUTAS REGISTRADAS EN LA API DE IA ---")
+# or route in app.routes:
+#    if hasattr(route, "methods"):
+#         print(f"Path: {route.path}, Methods: {route.methods}")
+# print("---------------------------------------")
+# --- FIN DEL BLOQUE DE DEPURACIÓN ---
+
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8001, reload=True)
