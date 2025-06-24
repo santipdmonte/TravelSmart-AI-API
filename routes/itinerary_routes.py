@@ -45,8 +45,8 @@ def generate_itinerary(input_state: ViajeStateInput):
 # Itinerary Agent
 
 @itinerary_router.post("/initialize_graph")
-def initialize_graph(thread_id: str):
-# def initialize_graph(thread_id: str, itinerary_state: ViajeState):
+#def initialize_graph(thread_id: str):
+def initialize_graph(thread_id: str, itinerary_state: ViajeState):
 
 
     config: RunnableConfig = {
@@ -56,8 +56,8 @@ def initialize_graph(thread_id: str):
     }
 
     initial_state = {
-        # "itinerary": itinerary_state,
-        "itinerary": "Viaje a la playa",
+        "itinerary": itinerary_state,
+        #"itinerary": "Viaje a la playa",
         "user_name": "Juan",
         "user_id": "user_123",
         # "messages": [{"role": "user", "content": "Quiero que mi itinerario ahora sea 'Viaje a la montaña'"}]

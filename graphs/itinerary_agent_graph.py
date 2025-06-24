@@ -39,8 +39,8 @@ summarization_node = SummarizationNode(
 
 class CustomState(AgentState):
     context: dict[str, Any]  # Used to store context of the summarization_node, to prevent the need of summarizing the context in all the runs
-    # itinerary: ViajeState
-    itinerary: str
+    itinerary: ViajeState
+    # itinerary: str
     user_name: str
     user_id: str
 
@@ -63,8 +63,8 @@ def prompt(
 # ==== Tools ====
 def apply_itinerary_modifications(
     tool_call_id: Annotated[str, InjectedToolCallId],
-    # new_itinerary: ViajeState,
-    new_itinerary: str,
+    new_itinerary: ViajeState,
+    #new_itinerary: str,
     new_itinerary_modifications_summary: str,
     # Itinerary: ItineraryState
 ) :
@@ -72,7 +72,7 @@ def apply_itinerary_modifications(
     Modify the itinerary.
     
     input:
-        - new_itinerary: str
+        - new_itinerary: ViajeState
         - new_itinerary_modifications_summary: str
     """
 

@@ -1,0 +1,65 @@
+{
+  "nombre_viaje": "Islas Griegas: Aventura y Relax",
+  "cantidad_dias": 10,
+  "destino_general": "Islas de Grecia",
+  "destinos": [
+    {
+      "nombre_destino": "Santorini",
+      "cantidad_dias_en_destino": 3,
+      "dias_destino": [
+        {
+          "posicion_dia": 1,
+          "actividades": "Llegada a Santorini, check-in en el hotel, tarde en Oia."
+        },
+        {
+          "posicion_dia": 2,
+          "actividades": "Visita a la playa de Perivolos y tour en barco al volcán."
+        },
+        {
+          "posicion_dia": 3,
+          "actividades": "Exploración del pueblo de Fira y degustación de vinos en una bodega local."
+        }
+      ]
+    },
+    {
+      "nombre_destino": "Mykonos",
+      "cantidad_dias_en_destino": 3,
+      "dias_destino": [
+        {
+          "posicion_dia": 4,
+          "actividades": "Llegada a Mykonos, tarde libre en la playa de Psarou."
+        },
+        {
+          "posicion_dia": 5,
+          "actividades": "Día de exploración en la isla de Delos."
+        },
+        {
+          "posicion_dia": 6,
+          "actividades": "Relajación en la playa de Elia y fiesta nocturna en Mykonos."
+        }
+      ]
+    },
+    {
+      "nombre_destino": "Creta",
+      "cantidad_dias_en_destino": 4,
+      "dias_destino": [
+        {
+          "posicion_dia": 7,
+          "actividades": "Llegada a Creta, visita a Heraklion y al Museo Arqueológico."
+        },
+        {
+          "posicion_dia": 8,
+          "actividades": "Excursión a la Playa de Elafonissi."
+        },
+        {
+          "posicion_dia": 9,
+          "actividades": "Día de senderismo en el desfiladero de Samaria."
+        },
+        {
+          "posicion_dia": 10,
+          "actividades": "Visita a Chania y degustación de la gastronomía local."
+        }
+      ]
+    }
+  ]
+}
