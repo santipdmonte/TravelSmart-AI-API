@@ -16,27 +16,27 @@ class OverallState(TypedDict):
     user_feedback: str
 
 
-def process_document(state: OverallState) -> OverallState:
+def process_document(state: OverallState):
 
     print(f"process_document: {state}")
 
     if state["user_feedback"] != "":
         state = {
             "state": "process_document",
-            # "document_path": state["document_path"],
+            "document_path": state["document_path"],
             "type_action": "generate",
             "action_suggestion": "generate the itinerary, lore ipsum",
-            # "user_feedback": ""
+            "user_feedback": ""
         }    
 
         return state
 
     state = {
         "state": "process_document",
-        # "document_path": state["document_path"],
+        "document_path": state["document_path"],
         "type_action": "save",
         "action_suggestion": "save the docuement, lore ipsum",
-        # "user_feedback": ""
+        "user_feedback": ""
     }
 
     return state
@@ -62,10 +62,9 @@ def HIL_feedback(state: OverallState):
         
     state = {
         "state": "HIL_feedback",
-        # Hace falta pasarl todos los campos del estado?
-        # "document_path": state["document_path"],
-        # "action_suggestion": state["action_suggestion"],
-        # "type_action": state["type_action"],
+        "document_path": state["document_path"],
+        "action_suggestion": state["action_suggestion"],
+        "type_action": state["type_action"],
         "user_feedback": user_feedback_message
     }
 

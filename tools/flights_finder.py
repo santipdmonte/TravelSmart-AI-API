@@ -23,7 +23,7 @@ class FlightsInputSchema(BaseModel):
 
 
 @tool(args_schema=FlightsInputSchema)
-def flights_finder(params: FlightsInput):
+def flights_finder(params: FlightsInput) -> dict[str, str | int | None] | str:
     '''
     Find flights using the Google Flights engine.
 
@@ -31,7 +31,7 @@ def flights_finder(params: FlightsInput):
         dict: Flight search results.
     '''
 
-    params = {
+    search_params: dict[str, str | int | None] = {
         'api_key': os.environ.get('SERPAPI_API_KEY'),
         'engine': 'google_flights',
         'hl': 'en',
@@ -49,7 +49,7 @@ def flights_finder(params: FlightsInput):
     }
 
     try:
-        search = serpapi.search(params)
+        search = serpapi.search(search_params)
         results = search.data['best_flights']
     except Exception as e:
         results = str(e)

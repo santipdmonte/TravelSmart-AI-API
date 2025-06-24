@@ -53,11 +53,11 @@ Eres el un experto en ajustar itinerarios de viajes segun las necesidades del us
 
 def prompt(
     state: CustomState
-) -> list[AnyMessage]:
+):
     user_name = state["user_name"]
     itinerary = state["itinerary"]
     system_msg = f"{PROMPT} El itinerario actual es: {itinerary}"
-    return [{"role": "system", "content": system_msg}] + state["messages"]
+    return [{"role": "system", "content": system_msg}] + list(state["messages"])
 
 
 # ==== Tools ====
@@ -67,7 +67,7 @@ def apply_itinerary_modifications(
     new_itinerary: str,
     new_itinerary_modifications_summary: str,
     # Itinerary: ItineraryState
-) -> str:
+) :
     """
     Modify the itinerary.
     

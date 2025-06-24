@@ -1,4 +1,5 @@
 import base64
+from typing import List, Union, Dict, Any
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 
@@ -36,7 +37,7 @@ if not all([image_data, image_data2, image_data3]):
 message = "Can you resume the text of the images?"
 
 # Create message with multiple images
-content = [{"type": "text", "text": message}]
+content: List[Union[str, Dict[str, Any]]] = [{"type": "text", "text": message}]
 
 # Add images to content if they exist
 for i, img_data in enumerate([image_data, image_data2, image_data3], 1):

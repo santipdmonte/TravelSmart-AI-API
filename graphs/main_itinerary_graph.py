@@ -4,6 +4,7 @@ from langchain_core.messages import SystemMessage
 from prompts.itinerary_prompt import get_itinerary_prompt
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
 from state import (
@@ -11,7 +12,7 @@ from state import (
     ViajeStateInput,
 )
 
-def generate_main_itinerary(state: ViajeStateInput) -> ViajeState:
+def generate_main_itinerary(state: ViajeStateInput): # -> ViajeState:
     """Generar el plan de viaje
     
     Args:

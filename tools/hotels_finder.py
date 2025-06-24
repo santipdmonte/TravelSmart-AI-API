@@ -12,7 +12,7 @@ class HotelsInput(BaseModel):
     q: str = Field(description='Location of the hotel')
     check_in_date: str = Field(description='Check-in date. The format is YYYY-MM-DD. e.g. 2024-06-22')
     check_out_date: str = Field(description='Check-out date. The format is YYYY-MM-DD. e.g. 2024-06-28')
-    sort_by: Optional[str] = Field(8, description='Parameter is used for sorting the results. Default is sort by highest rating')
+    sort_by: Optional[str] = Field("8", description='Parameter is used for sorting the results. Default is sort by highest rating')
     adults: Optional[int] = Field(1, description='Number of adults. Default to 1.')
     children: Optional[int] = Field(0, description='Number of children. Default to 0.')
     rooms: Optional[int] = Field(1, description='Number of rooms. Default to 1.')
@@ -25,7 +25,7 @@ class HotelsInputSchema(BaseModel):
 
 
 @tool(args_schema=HotelsInputSchema)
-def hotels_finder(params: HotelsInput):
+def hotels_finder(params: HotelsInput) -> dict[str, str | int | None]:
     '''
     Find hotels using the Google Hotels engine.
 
@@ -33,7 +33,7 @@ def hotels_finder(params: HotelsInput):
         dict: Hotel search results.
     '''
 
-    params = {
+    search_params: dict[str, str | int | None] = {
         'api_key': os.environ.get('SERPAPI_API_KEY'),
         'engine': 'google_hotels',
         'hl': 'en',
@@ -49,6 +49,6 @@ def hotels_finder(params: HotelsInput):
         'hotel_class': params.hotel_class
     }
 
-    search = serpapi.search(params)
+    search = serpapi.search(search_params)
     results = search.data
     return results['properties'][:5]

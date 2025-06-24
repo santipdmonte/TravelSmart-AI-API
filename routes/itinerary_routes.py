@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 from utils.utils import extract_chatbot_message, detect_hil_mode
 import traceback
 from fastapi import HTTPException
+from langchain_core.runnables import RunnableConfig
 
 # Crear router para las rutas del clasificador de viajeros
 itinerary_router = APIRouter(prefix="/itinerary", tags=["Itinerary"])
@@ -48,7 +49,7 @@ def initialize_graph(thread_id: str):
 # def initialize_graph(thread_id: str, itinerary_state: ViajeState):
 
 
-    config = {
+    config: RunnableConfig = {
         "configurable": {
             "thread_id": thread_id,
         }
@@ -108,7 +109,7 @@ def initialize_graph(thread_id: str):
 @itinerary_router.post("/user_response")
 def user_response(thread_id: str, user_response: str):
 
-    config = {
+    config: RunnableConfig = {
         "configurable": {
             "thread_id": thread_id
         }
@@ -164,7 +165,7 @@ def user_response(thread_id: str, user_response: str):
 @itinerary_router.post("/HIL_response")
 def user_HIL_response(thread_id: str, user_HIL_response: str):
 
-    config = {
+    config: RunnableConfig = {
         "configurable": {
             "thread_id": thread_id
         }
@@ -221,7 +222,7 @@ def user_HIL_response(thread_id: str, user_HIL_response: str):
 @itinerary_router.get("/get_state")
 def get_state(thread_id: str):
 
-    config = {
+    config: RunnableConfig = {
         "configurable": {
             "thread_id": thread_id
         }

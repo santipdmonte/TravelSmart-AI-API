@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -21,8 +21,8 @@ class TravelerProfile:
 @dataclass
 class ClassificationResult:
     primary_profile: TravelerProfile
-    secondary_profile: TravelerProfile = None
-    scores: Dict[TravelerType, float] = None
+    secondary_profile: Optional[TravelerProfile] = None
+    scores: Optional[Dict[TravelerType, float]] = None
 
 class TravelerClassifierService:
     
