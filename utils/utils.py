@@ -1,3 +1,6 @@
+import json
+from pydantic.json import pydantic_encoder
+
 def extract_chatbot_message(state_info):
     """Helper function to extract chatbot message from state info"""
     chatbot_message = ""
@@ -46,3 +49,11 @@ def detect_hil_mode(raw_state):
         print(f"Error detecting HIL mode: {e}")
     
     return is_hil_mode, hil_message, None
+
+def state_to_json(state):
+    """Convert the state to a JSON string"""
+    return json.dumps(state, default=pydantic_encoder)
+
+def state_to_dict(state):
+    """Convert the state to a dictionary"""
+    return json.loads(state_to_json(state))
