@@ -82,6 +82,11 @@ class ItineraryUpdate(BaseModel):
             date: lambda v: v.isoformat() if v else None
         }
 
+class ItineraryGenerate(BaseModel):
+    """Schema for generating an itinerary"""
+    trip_name: str = Field(..., max_length=200, description="Name of the trip")
+    duration_days: int = Field(..., ge=1, description="Duration of the trip in days")
+
 
 class ItineraryResponse(ItineraryBase):
     """Schema for itinerary responses - works with SQLAlchemy ORM"""

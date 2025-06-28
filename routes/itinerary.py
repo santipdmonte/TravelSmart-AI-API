@@ -8,7 +8,8 @@ from schemas.itinerary import (
     ItineraryCreate, 
     ItineraryUpdate, 
     ItineraryResponse, 
-    ItineraryList
+    ItineraryList,
+    ItineraryGenerate
 )
 
 itinerary_router = APIRouter(prefix="/api/itineraries", tags=["itineraries"])
@@ -26,6 +27,14 @@ def create_itinerary(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error creating itinerary: {str(e)}")
 
+@itinerary_router.post("/generate", response_model=ItineraryResponse)
+def generate_itinerary(
+    itinerary_data: ItineraryGenerate,
+    db: Session = Depends(get_db)
+):
+    """Generate an itinerary"""
+    service = get_itinerary_service(db)
+    return service.generate_itinerary(itinerary_data)
 
 @itinerary_router.get("/{itinerary_id}", response_model=ItineraryResponse)
 def get_itinerary(

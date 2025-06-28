@@ -1,11 +1,12 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from models.itinerary import Itinerary
-from schemas.itinerary import ItineraryCreate, ItineraryUpdate
+from schemas.itinerary import ItineraryCreate, ItineraryUpdate, ItineraryGenerate
 from typing import List, Optional
 from datetime import datetime
 import uuid
-
+from graphs.itinerary_graph import itinerary_graph
+from utils.utils import state_to_dict
 
 class ItineraryService:
     """Service class for itinerary CRUD operations"""
@@ -19,6 +20,24 @@ class ItineraryService:
         self.db.add(db_itinerary)
         self.db.commit()
         self.db.refresh(db_itinerary)
+        return db_itinerary
+
+    def generate_itinerary(self, itinerary_data: ItineraryGenerate) -> Itinerary:
+        """Generate an itinerary"""
+
+        state = itinerary_graph.invoke(itinerary_data)
+        details_itinerary = state_to_dict(state)
+
+        db_itinerary = Itinerary(
+            trip_name=itinerary_data.trip_name,
+            duration_days=itinerary_data.duration_days,
+            details_itinerary=details_itinerary
+        )
+
+        self.db.add(db_itinerary)
+        self.db.commit()
+        self.db.refresh(db_itinerary)
+        
         return db_itinerary
     
     def get_itinerary_by_id(self, itinerary_id: uuid.UUID) -> Optional[Itinerary]:

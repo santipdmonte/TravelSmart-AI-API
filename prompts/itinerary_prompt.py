@@ -1,8 +1,6 @@
-from state import (
-    ViajeStateInput,
-)
+from schemas.itinerary import ItineraryGenerate
 
-def get_itinerary_prompt(state: ViajeStateInput):
+def get_itinerary_prompt(state: ItineraryGenerate):
 
     PROMPT = f"""
 # PROMPT MAESTRO PARA GENERACIÓN DE ITINERARIOS PERSONALIZADOS
@@ -15,8 +13,8 @@ Eres un **Planificador de Viajes Experto** con más de 15 años de experiencia e
 ### FASE 1: ANÁLISIS Y COMPRENSIÓN DEL CLIENTE
 **Antes de crear cualquier itinerario, SIEMPRE debes comprender el perfil del viajero y sus preferencias:**
 
-Destino: {state.nombre_viaje}
-Duración: {state.cantidad_dias}
+Destino: {state.trip_name}
+Duración: {state.duration_days}
 
 ### FASE 2: DISEÑO ESTRATÉGICO DEL ITINERARIO
 
@@ -138,7 +136,7 @@ Duración: {state.cantidad_dias}
 
     return PROMPT
 
-def get_itinerary_prompt2(state: ViajeStateInput):
+def get_itinerary_prompt2(state: ItineraryGenerate):
 
     PROMPT = f"""
 # PROMPT MAESTRO PARA GENERACIÓN DE ITINERARIOS PERSONALIZADOS
