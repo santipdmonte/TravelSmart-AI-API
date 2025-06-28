@@ -231,8 +231,9 @@ def initialize_itinerary_agent(
     return service.initilize_agent(itinerary, thread_id)
 
 
-@itinerary_router.post("/agent/{thread_id}")
+@itinerary_router.post("/{itinerary_id}/agent/{thread_id}/messages")
 def send_message_to_itinerary_agent(
+    itinerary_id: uuid.UUID,
     thread_id: str,
     message: str,
     HIL_response: bool = False,
@@ -240,7 +241,7 @@ def send_message_to_itinerary_agent(
 ):
     """Send a message to an itinerary agent"""
     service = get_itinerary_service(db)
-    return service.send_agent_message(thread_id, message, HIL_response)
+    return service.send_agent_message(itinerary_id, thread_id, message, HIL_response)
 
 
 @itinerary_router.get("/agent/{thread_id}")

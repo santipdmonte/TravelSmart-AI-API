@@ -37,9 +37,7 @@ class ItineraryService:
             details_itinerary=details_itinerary
         )
 
-        self.db.add(db_itinerary)
-        self.db.commit()
-        self.db.refresh(db_itinerary)
+        self.create_itinerary(db_itinerary)
         
         return db_itinerary
     
@@ -208,7 +206,7 @@ class ItineraryService:
         return state_dict     
 
 
-    def send_agent_message(self, thread_id: str, message: str, HIL_response: bool = False):
+    def send_agent_message(self, itinerary_id: uuid.UUID, thread_id: str, message: str, HIL_response: bool = False):
         config: RunnableConfig = {
             "configurable": {
                 "thread_id": thread_id,
@@ -221,12 +219,33 @@ class ItineraryService:
         if HIL_response:
             itinerary_agent.invoke(Command(resume={"messages": message}), config=config)
 
-        else:
-            itinerary_agent.invoke({"messages": message}, config=config)
+            itinerary = self.get_itinerary_by_id(itinerary_id)
 
-        raw_state = itinerary_agent.get_state(config)
-        state_dict = state_to_dict(raw_state)
-        return state_dict
+            agent_state = self.get_agent_state(thread_id)
+
+            itinerary_update = ItineraryUpdate(
+                details_itinerary=agent_state[0]["itinerary"],
+                trip_name=agent_state[0]["itinerary"]["nombre_viaje"],
+                duration_days=agent_state[0]["itinerary"]["cantidad_dias"],
+                slug=itinerary.slug,
+                destination=itinerary.destination,
+                start_date=itinerary.start_date,
+                travelers_count=itinerary.travelers_count,
+                budget=itinerary.budget,
+                trip_type=itinerary.trip_type,
+                tags=itinerary.tags,
+                notes=itinerary.notes,
+                visibility=itinerary.visibility,
+                status=itinerary.status,
+            )
+
+            self.update_itinerary(itinerary_id, itinerary_update)
+
+            return agent_state
+  
+        itinerary_agent.invoke({"messages": message}, config=config)
+
+        return self.get_agent_state(thread_id)
 
 
     def get_agent_state(self, thread_id: str):
