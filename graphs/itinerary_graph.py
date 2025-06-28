@@ -4,6 +4,8 @@ from langchain_core.messages import SystemMessage
 from prompts.itinerary_prompt import get_itinerary_prompt
 from dotenv import load_dotenv
 
+from schemas.itinerary import ItineraryGenerate
+
 
 load_dotenv()
 
@@ -12,7 +14,7 @@ from state import (
     ViajeStateInput,
 )
 
-def generate_main_itinerary(state: ViajeStateInput): # -> ViajeState:
+def generate_main_itinerary(state: ItineraryGenerate): # -> ViajeState:
     """Generar el plan de viaje
     
     Args:
@@ -38,11 +40,11 @@ def generate_main_itinerary(state: ViajeStateInput): # -> ViajeState:
 
 
 # Add nodes
-builder = StateGraph(ViajeState, input=ViajeStateInput, output=ViajeState)
+builder = StateGraph(ViajeState, input=ItineraryGenerate, output=ViajeState)
 builder.add_node("generate_main_itinerary", generate_main_itinerary)
 
 # Add edges
 builder.add_edge(START, "generate_main_itinerary")
 builder.add_edge("generate_main_itinerary", END)
 
-main_itinerary_graph = builder.compile()
+itinerary_graph = builder.compile()
