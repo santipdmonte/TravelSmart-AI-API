@@ -27,6 +27,7 @@ def create_itinerary(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error creating itinerary: {str(e)}")
 
+
 @itinerary_router.post("/generate", response_model=ItineraryResponse)
 def generate_itinerary(
     itinerary_data: ItineraryGenerate,
@@ -35,6 +36,23 @@ def generate_itinerary(
     """Generate an itinerary"""
     service = get_itinerary_service(db)
     return service.generate_itinerary(itinerary_data)
+
+
+@itinerary_router.post("/{itinerary_id}/agent/{thread_id}")
+def initialize_agent(
+    itinerary_id: uuid.UUID,
+    thread_id: str,
+    db: Session = Depends(get_db)
+):
+    """Initialize an agent"""
+    service = get_itinerary_service(db)
+
+    itinerary = service.get_itinerary_by_id(itinerary_id)
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+
+    return service.initilize_agent(itinerary, thread_id)
+
 
 @itinerary_router.get("/{itinerary_id}", response_model=ItineraryResponse)
 def get_itinerary(
@@ -195,3 +213,41 @@ def get_session_itineraries(
     """Get all itineraries for a specific session UUID"""
     service = get_itinerary_service(db)
     return service.get_itineraries_by_session(session_id, skip, limit)
+
+
+@itinerary_router.post("/{itinerary_id}/agent/{thread_id}")
+def initialize_itinerary_agent(
+    itinerary_id: uuid.UUID,
+    thread_id: str,
+    db: Session = Depends(get_db)
+):
+    """Initialize an itinerary agent"""
+    service = get_itinerary_service(db)
+
+    itinerary = service.get_itinerary_by_id(itinerary_id)
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+
+    return service.initilize_agent(itinerary, thread_id)
+
+
+@itinerary_router.post("/agent/{thread_id}")
+def send_message_to_itinerary_agent(
+    thread_id: str,
+    message: str,
+    HIL_response: bool = False,
+    db: Session = Depends(get_db)
+):
+    """Send a message to an itinerary agent"""
+    service = get_itinerary_service(db)
+    return service.send_agent_message(thread_id, message, HIL_response)
+
+
+@itinerary_router.get("/agent/{thread_id}")
+def get_agent_state(
+    thread_id: str,
+    db: Session = Depends(get_db)
+):
+    """Get the state of an itinerary agent"""
+    service = get_itinerary_service(db)
+    return service.get_agent_state(thread_id)

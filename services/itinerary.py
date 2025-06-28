@@ -6,7 +6,10 @@ from typing import List, Optional
 from datetime import datetime
 import uuid
 from graphs.itinerary_graph import itinerary_graph
+from graphs.itinerary_agent import itinerary_agent
 from utils.utils import state_to_dict
+from langchain_core.runnables import RunnableConfig
+from langgraph.types import Command
 
 class ItineraryService:
     """Service class for itinerary CRUD operations"""
@@ -181,6 +184,63 @@ class ItineraryService:
             "public_itineraries": public,
             "private_itineraries": private
         }
+
+    
+    def initilize_agent(self, itinerary: Itinerary, thread_id: str):
+
+        config: RunnableConfig = {
+            "configurable": {
+                "thread_id": thread_id,
+            }
+        }
+
+        initial_state = {
+            "itinerary": itinerary.details_itinerary,
+            "user_name": "Juan",
+            "user_id": "user_123",
+        }
+
+        itinerary_agent.invoke(initial_state, config=config)
+
+        raw_state = itinerary_agent.get_state(config)
+        state_dict = state_to_dict(raw_state)
+
+        return state_dict     
+
+
+    def send_agent_message(self, thread_id: str, message: str, HIL_response: bool = False):
+        config: RunnableConfig = {
+            "configurable": {
+                "thread_id": thread_id,
+            }
+        }
+
+        # TODO: Validate if the thread_id is valid
+        # TODO: Validate if the agent is expecting a HIL response
+
+        if HIL_response:
+            itinerary_agent.invoke(Command(resume={"messages": message}), config=config)
+
+        else:
+            itinerary_agent.invoke({"messages": message}, config=config)
+
+        raw_state = itinerary_agent.get_state(config)
+        state_dict = state_to_dict(raw_state)
+        return state_dict
+
+
+    def get_agent_state(self, thread_id: str):
+        config: RunnableConfig = {
+            "configurable": {
+                "thread_id": thread_id,
+            }
+        }
+
+        raw_state = itinerary_agent.get_state(config)
+        # TODO: Validate if the thread_id is valid
+        state_dict = state_to_dict(raw_state)
+
+        return state_dict
 
 
 # Convenience functions for dependency injection
