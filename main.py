@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.travel_classifier_routes import travel_classifier_router
 from routes.document_analyzer_router import document_analyzer_router
 from routes.itinerary import itinerary_router
-from routes.user_routes import router as auth_router, user_router
+from routes.user import router as auth_router, user_router
 from database import engine
 from dependencies import get_db
 from models.itinerary import Base as ItineraryBase
