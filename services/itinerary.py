@@ -37,7 +37,9 @@ class ItineraryService:
             details_itinerary=details_itinerary
         )
 
-        self.create_itinerary(db_itinerary)
+        self.db.add(db_itinerary)
+        self.db.commit()
+        self.db.refresh(db_itinerary)
         
         return db_itinerary
     
