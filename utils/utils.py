@@ -21,10 +21,12 @@ def extract_chatbot_message(state_info):
                 continue
     return chatbot_message
 
-def detect_hil_mode(raw_state):
+def detect_hil_mode(agent,config):
     """Detect if the agent is waiting for Human in the Loop response"""
     hil_message = ""
     is_hil_mode = False
+
+    raw_state = agent.get_state(config)
     
     try:
         # Check if this is a StateSnapshot format

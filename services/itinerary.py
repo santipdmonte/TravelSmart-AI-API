@@ -7,7 +7,7 @@ from datetime import datetime
 import uuid
 from graphs.itinerary_graph import itinerary_graph
 from graphs.itinerary_agent import itinerary_agent
-from utils.utils import state_to_dict
+from utils.utils import state_to_dict, detect_hil_mode
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 
@@ -208,7 +208,7 @@ class ItineraryService:
         return state_dict     
 
 
-    def send_agent_message(self, itinerary_id: uuid.UUID, thread_id: str, message: str, HIL_response: bool = False):
+    def send_agent_message(self, itinerary_id: uuid.UUID, thread_id: str, message: str):
         config: RunnableConfig = {
             "configurable": {
                 "thread_id": thread_id,
@@ -216,9 +216,10 @@ class ItineraryService:
         }
 
         # TODO: Validate if the thread_id is valid
-        # TODO: Validate if the agent is expecting a HIL response
 
-        if HIL_response:
+        is_hil_mode, hil_message, state_values = detect_hil_mode(itinerary_agent, config)
+
+        if is_hil_mode:
             itinerary_agent.invoke(Command(resume={"messages": message}), config=config)
 
             itinerary = self.get_itinerary_by_id(itinerary_id)

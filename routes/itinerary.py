@@ -236,12 +236,11 @@ def send_message_to_itinerary_agent(
     itinerary_id: uuid.UUID,
     thread_id: str,
     message: str,
-    HIL_response: bool = False,
     db: Session = Depends(get_db)
 ):
     """Send a message to an itinerary agent"""
     service = get_itinerary_service(db)
-    return service.send_agent_message(itinerary_id, thread_id, message, HIL_response)
+    return service.send_agent_message(itinerary_id, thread_id, message)
 
 
 @itinerary_router.get("/agent/{thread_id}")
