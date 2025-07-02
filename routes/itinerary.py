@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
-from dependencies import get_db, get_session_id
+from dependencies import get_db
 from services.itinerary import ItineraryService, get_itinerary_service
 from schemas.itinerary import (
     ItineraryCreate, 
@@ -12,6 +12,7 @@ from schemas.itinerary import (
     ItineraryGenerate
 )
 from utils.jwt_utils import get_current_user_optional
+from utils.session import get_session_id_from_request
 from models.user import User
 
 itinerary_router = APIRouter(prefix="/api/itineraries", tags=["itineraries"])
@@ -28,7 +29,7 @@ def create_itinerary(
     service = get_itinerary_service(db)
     
     # Get session_id only if user is not authenticated
-    session_id = None if current_user else get_session_id(request)
+    session_id = None if current_user else get_session_id_from_request(request)
     
     try:
         return service.create_itinerary(itinerary_data, current_user, session_id)
@@ -47,7 +48,7 @@ def generate_itinerary(
     service = get_itinerary_service(db)
     
     # Get session_id only if user is not authenticated
-    session_id = None if current_user else get_session_id(request)
+    session_id = None if current_user else get_session_id_from_request(request)
     
     return service.generate_itinerary(itinerary_data, current_user, session_id)
 
@@ -108,7 +109,7 @@ def get_itineraries(
     if current_user:
         return service.get_itineraries_by_user(str(current_user.id), skip, limit)
     else:
-        session_id = get_session_id(request)
+        session_id = get_session_id_from_request(request)
         return service.get_itineraries_by_session(session_id, skip, limit)
 
 
