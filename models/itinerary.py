@@ -36,8 +36,8 @@ class Itinerary(Base):
     __tablename__ = "itineraries"
 
     itinerary_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    user_id = Column(String(255), nullable=True, index=True)  # Auth0 compatible string format
-    session_id = Column(UUID(as_uuid=True), nullable=True, index=True, default=uuid.uuid4)  # UUID for sessions
+    user_id = Column(String(255), nullable=True, index=True)
+    session_id = Column(UUID(as_uuid=True), nullable=True, index=True)
     slug = Column(String(255), nullable=True, unique=True, index=True)
     destination = Column(String(255), nullable=True)
     start_date = Column(Date, nullable=True)

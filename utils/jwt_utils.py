@@ -145,6 +145,38 @@ async def get_current_active_user(
     return current_user
 
 
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
+    user_service: UserService = Depends(get_user_service)
+) -> Optional[User]:
+    """Get current authenticated user from JWT token, returns None if not authenticated"""
+    if not credentials:
+        return None
+    
+    try:
+        # Extract token from credentials
+        token = credentials.credentials
+        
+        # Verify token and get user ID
+        user_id = decode_token(token)
+        if user_id is None:
+            return None
+        
+        # Get user from database
+        user = user_service.get_user_by_id(user_id)
+        if user is None:
+            return None
+        
+        # Check if user is active
+        if user.status != "active":
+            return None
+        
+        return user
+    
+    except JWTError:
+        return None
+
+
 def require_roles(*allowed_roles: str):
     """Decorator factory for role-based access control"""
     def role_checker(current_user: User = Depends(get_current_active_user)) -> User:
