@@ -123,7 +123,7 @@ async def logout(
     current_user: User = Depends(get_current_active_user)
 ):
     """Logout user (in a real app, you'd blacklist the token)"""
-    # TODO: Implement token blacklisting
+    # TODO: Implement token blacklisting or you can trust the token to be invalidated by the client
     return {"message": "Successfully logged out"}
 
 
