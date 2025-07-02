@@ -257,7 +257,10 @@ def send_message_to_itinerary_agent(
 ):
     """Send a message to an itinerary agent"""
     service = get_itinerary_service(db)
-    return service.send_agent_message(itinerary_id, thread_id, message)
+    result = service.send_agent_message(itinerary_id, thread_id, message)
+    if result is False:
+        raise HTTPException(status_code=404, detail="Agent thread not found or invalid")
+    return result
 
 
 @itinerary_router.get("/agent/{thread_id}")
@@ -267,4 +270,7 @@ def get_agent_state(
 ):
     """Get the state of an itinerary agent"""
     service = get_itinerary_service(db)
-    return service.get_agent_state(thread_id)
+    agent_state = service.get_agent_state(thread_id)
+    if agent_state is False:
+        raise HTTPException(status_code=404, detail="Agent thread not found or invalid")
+    return agent_state

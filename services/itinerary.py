@@ -8,6 +8,7 @@ from datetime import datetime
 import uuid
 from graphs.itinerary_graph import itinerary_graph
 from graphs.itinerary_agent import itinerary_agent
+from utils.agent import is_valid_thread_state
 from utils.utils import state_to_dict, detect_hil_mode
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
@@ -247,7 +248,10 @@ class ItineraryService:
             }
         }
 
-        # TODO: Validate if the thread_id is valid
+        raw_state = itinerary_agent.get_state(config)
+        state_dict = state_to_dict(raw_state)
+        if not is_valid_thread_state(state_dict):
+            return False
 
         is_hil_mode, hil_message, state_values = detect_hil_mode(itinerary_agent, config)
 
@@ -291,8 +295,9 @@ class ItineraryService:
         }
 
         raw_state = itinerary_agent.get_state(config)
-        # TODO: Validate if the thread_id is valid
         state_dict = state_to_dict(raw_state)
+        if not is_valid_thread_state(state_dict):
+            return False
 
         return state_dict
 
