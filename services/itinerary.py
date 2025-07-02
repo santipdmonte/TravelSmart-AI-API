@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from models.itinerary import Itinerary
+from models.user import User
 from schemas.itinerary import ItineraryCreate, ItineraryUpdate, ItineraryGenerate
 from typing import List, Optional
 from datetime import datetime
@@ -17,29 +18,60 @@ class ItineraryService:
     def __init__(self, db: Session):
         self.db = db
     
-    def create_itinerary(self, itinerary_data: ItineraryCreate) -> Itinerary:
-        """Create a new itinerary"""
-        db_itinerary = Itinerary(**itinerary_data.dict())
+    def create_itinerary(self, itinerary_data: ItineraryCreate, user: Optional[User] = None, session_id: Optional[uuid.UUID] = None) -> Itinerary:
+        """Create a new itinerary with automatic user/session assignment"""
+        itinerary_dict = itinerary_data.dict()
+        
+        # Set user_id if user is authenticated, otherwise use session_id
+        if user:
+            itinerary_dict['user_id'] = str(user.id)  # Convert UUID to string for Auth0 compatibility
+            itinerary_dict['session_id'] = None  # Clear session_id for authenticated users
+        else:
+            itinerary_dict['user_id'] = None
+            itinerary_dict['session_id'] = session_id or uuid.uuid4()
+        
+        db_itinerary = Itinerary(**itinerary_dict)
         self.db.add(db_itinerary)
         self.db.commit()
         self.db.refresh(db_itinerary)
+        
+        # Update user trip count if authenticated
+        if user:
+            user.total_trips_created += 1
+            self.db.commit()
+        
         return db_itinerary
 
-    def generate_itinerary(self, itinerary_data: ItineraryGenerate) -> Itinerary:
-        """Generate an itinerary"""
+    def generate_itinerary(self, itinerary_data: ItineraryGenerate, user: Optional[User] = None, session_id: Optional[uuid.UUID] = None) -> Itinerary:
+        """Generate an itinerary with automatic user/session assignment"""
 
         state = itinerary_graph.invoke(itinerary_data)
         details_itinerary = state_to_dict(state)
 
+        # Set user_id if user is authenticated, otherwise use session_id
+        if user:
+            user_id = str(user.id)
+            session_id_to_use = None
+        else:
+            user_id = None
+            session_id_to_use = session_id or uuid.uuid4()
+
         db_itinerary = Itinerary(
             trip_name=itinerary_data.trip_name,
             duration_days=itinerary_data.duration_days,
-            details_itinerary=details_itinerary
+            details_itinerary=details_itinerary,
+            user_id=user_id,
+            session_id=session_id_to_use
         )
 
         self.db.add(db_itinerary)
         self.db.commit()
         self.db.refresh(db_itinerary)
+        
+        # Update user trip count if authenticated
+        if user:
+            user.total_trips_created += 1
+            self.db.commit()
         
         return db_itinerary
     

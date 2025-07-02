@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
@@ -11,6 +11,9 @@ from schemas.itinerary import (
     ItineraryList,
     ItineraryGenerate
 )
+from utils.jwt_utils import get_current_user_optional
+from utils.session import get_session_id_from_request
+from models.user import User
 
 itinerary_router = APIRouter(prefix="/api/itineraries", tags=["itineraries"])
 
@@ -18,12 +21,18 @@ itinerary_router = APIRouter(prefix="/api/itineraries", tags=["itineraries"])
 @itinerary_router.post("/", response_model=ItineraryResponse, status_code=201)
 def create_itinerary(
     itinerary_data: ItineraryCreate,
+    request: Request,
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
     """Create a new itinerary"""
     service = get_itinerary_service(db)
+    
+    # Get session_id only if user is not authenticated
+    session_id = None if current_user else get_session_id_from_request(request)
+    
     try:
-        return service.create_itinerary(itinerary_data)
+        return service.create_itinerary(itinerary_data, current_user, session_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error creating itinerary: {str(e)}")
 
@@ -31,11 +40,17 @@ def create_itinerary(
 @itinerary_router.post("/generate", response_model=ItineraryResponse)
 def generate_itinerary(
     itinerary_data: ItineraryGenerate,
+    request: Request,
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
     """Generate an itinerary"""
     service = get_itinerary_service(db)
-    return service.generate_itinerary(itinerary_data)
+    
+    # Get session_id only if user is not authenticated
+    session_id = None if current_user else get_session_id_from_request(request)
+    
+    return service.generate_itinerary(itinerary_data, current_user, session_id)
 
 
 @itinerary_router.post("/{itinerary_id}/agent/{thread_id}")
@@ -82,18 +97,20 @@ def get_itinerary_by_slug(
 
 @itinerary_router.get("/", response_model=List[ItineraryList])
 def get_itineraries(
-    user_id: Optional[str] = Query(None, description="Filter by Auth0 user ID"),
-    session_id: Optional[uuid.UUID] = Query(None, description="Filter by session UUID"),
+    request: Request,
+    current_user: Optional[User] = Depends(get_current_user_optional),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
     db: Session = Depends(get_db)
 ):
-    """Get itineraries filtered by user_id or session_id"""
-    if not user_id and not session_id:
-        raise HTTPException(status_code=400, detail="Either user_id or session_id must be provided")
-    
+    """Get itineraries for current user or session"""
     service = get_itinerary_service(db)
-    return service.get_user_or_session_itineraries(user_id, session_id, skip, limit)
+    
+    if current_user:
+        return service.get_itineraries_by_user(str(current_user.id), skip, limit)
+    else:
+        session_id = get_session_id_from_request(request)
+        return service.get_itineraries_by_session(session_id, skip, limit)
 
 
 @itinerary_router.get("/public/list", response_model=List[ItineraryList])

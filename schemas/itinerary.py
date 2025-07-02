@@ -55,9 +55,28 @@ class ItineraryBase(BaseModel):
         }
 
 
-class ItineraryCreate(ItineraryBase):
+class ItineraryCreate(BaseModel):
     """Schema for creating a new itinerary"""
-    pass
+    # Remove user_id and session_id - they'll be automatically assigned
+    slug: Optional[str] = Field(None, description="URL-friendly identifier for sharing")
+    destination: Optional[str] = Field(None, description="Primary destination of the trip")
+    start_date: Optional[date] = Field(None, description="Trip start date")
+    duration_days: Optional[int] = Field(None, ge=1, description="Duration of the trip in days")
+    travelers_count: Optional[int] = Field(None, ge=1, description="Number of travelers")
+    budget: Optional[float] = Field(None, ge=0, description="Trip budget")
+    trip_type: Optional[TripTypeEnum] = Field(None, description="Type of trip")
+    tags: Optional[List[str]] = Field(None, description="Tags for categorization")
+    notes: Optional[str] = Field(None, description="Private notes for the traveler")
+    details_itinerary: Optional[Dict[str, Any]] = Field(None, description="JSON field containing itinerary details")
+    trip_name: str = Field(..., max_length=200, description="Name of the trip")
+    visibility: VisibilityEnum = Field(default=VisibilityEnum.PRIVATE, description="Visibility level of the itinerary")
+    status: StatusEnum = Field(default=StatusEnum.DRAFT, description="Status of the itinerary")
+
+    class Config:
+        use_enum_values = True
+        json_encoders = {
+            date: lambda v: v.isoformat() if v else None
+        }
 
 
 class ItineraryUpdate(BaseModel):
