@@ -8,7 +8,7 @@ from services.user import UserService, get_user_service
 from schemas.user import (
     UserCreate, UserUpdate, UserLogin, UserResponse, UserPublicProfile, 
     UserList, UserPasswordChange, UserPasswordReset, UserPasswordResetConfirm,
-    UserEmailVerification, UserStats, UserPreferences
+    UserEmailVerification, UserStats, UserPreferences, EmailVerificationResponse, ResendVerificationResponse
 )
 from utils.jwt_utils import (
     get_current_user, get_current_active_user, get_admin_user,
@@ -129,23 +129,38 @@ async def logout(
 
 # ==================== EMAIL VERIFICATION ROUTES ====================
 
-@router.get("/verify-email")
+@router.get("/verify-email", response_model=EmailVerificationResponse)
 async def verify_email(
+    request: Request,
     token: str = Query(..., description="Email verification token"),
     user_service: UserService = Depends(get_user_service)
 ):
-    """Verify user email with token"""
-    success = user_service.verify_email(token)
-    if not success:
+    """Verify user email with token and return JWT tokens for auto-login"""
+    success, user = user_service.verify_email(token)
+    if not success or not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired verification token"
         )
     
-    return {"message": "Email verified successfully"}
+    # Record successful login for the verified user
+    user_agent = request.headers.get("User-Agent")
+    user_service.record_login(
+        user_id=user.id,
+        location_data=None,  # TODO: Implement location service
+        user_agent=user_agent
+    )
+    
+    # Create token response for auto-login
+    from utils.jwt_utils import create_token_response
+    token_data = create_token_response(user)
+    token_data["user"] = UserResponse.model_validate(user)
+    token_data["message"] = "Email verified successfully. Welcome to TravelSmart AI!"
+    
+    return token_data
 
 
-@router.post("/resend-verification")
+@router.post("/resend-verification", response_model=ResendVerificationResponse)
 async def resend_verification(
     email_data: UserPasswordReset,  # Reusing this schema as it only has email field
     user_service: UserService = Depends(get_user_service)
@@ -158,7 +173,37 @@ async def resend_verification(
             detail="Email not found or already verified"
         )
     
-    return {"message": "Verification email sent"}
+    return ResendVerificationResponse(message="Verification email sent successfully")
+
+@router.post("/verify-email-token", response_model=EmailVerificationResponse)
+async def verify_email_token(
+    request: Request,
+    token: str = Query(..., description="Email verification token"),
+    user_service: UserService = Depends(get_user_service)
+):
+    """Verify email token and return user data (for frontend integration)"""
+    success, user = user_service.verify_email(token)
+    if not success or not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token"
+        )
+    
+    # Record successful login for the verified user
+    user_agent = request.headers.get("User-Agent")
+    user_service.record_login(
+        user_id=user.id,
+        location_data=None,
+        user_agent=user_agent
+    )
+    
+    # Create token response for auto-login
+    from utils.jwt_utils import create_token_response
+    token_data = create_token_response(user)
+    token_data["user"] = UserResponse.model_validate(user)
+    token_data["message"] = "Email verified successfully. Welcome to TravelSmart AI!"
+    
+    return token_data
 
 
 # ==================== PASSWORD MANAGEMENT ROUTES ====================

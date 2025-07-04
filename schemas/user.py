@@ -220,3 +220,18 @@ class UserPreferences(BaseModel):
         json_encoders = {
             datetime: lambda v: v.isoformat() if v else None
         }
+
+
+class EmailVerificationResponse(BaseModel):
+    """Response model for email verification"""
+    message: str
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user: UserResponse
+
+class ResendVerificationResponse(BaseModel):
+    """Response model for resend verification"""
+    message: str
+    success: bool = True

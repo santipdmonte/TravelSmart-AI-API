@@ -22,6 +22,11 @@ FROM_NAME = os.getenv("FROM_NAME", "TravelSmart AI")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 EMAIL_VERIFICATION_URL = os.getenv("EMAIL_VERIFICATION_URL", f"{FRONTEND_URL}/verify-email")
 PASSWORD_RESET_URL = os.getenv("PASSWORD_RESET_URL", f"{FRONTEND_URL}/reset-password")
+DASHBOARD_URL = os.getenv("DASHBOARD_URL", f"{FRONTEND_URL}/dashboard")
+
+# Email verification settings
+EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS = int(os.getenv("EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS", "24"))
+PASSWORD_RESET_TOKEN_EXPIRE_HOURS = int(os.getenv("PASSWORD_RESET_TOKEN_EXPIRE_HOURS", "1"))
 
 # Jinja2 environment for templates
 template_env = Environment(loader=FileSystemLoader("templates/emails"))
@@ -41,6 +46,11 @@ class EmailService:
     async def _send_email(self, to_email: str, subject: str, html_content: str, text_content: Optional[str] = None) -> bool:
         """Send email using aiosmtplib"""
         try:
+            # Validate email configuration
+            if not all([self.smtp_username, self.smtp_password, self.from_email]):
+                print("Email configuration incomplete. Please check SMTP_USERNAME, SMTP_PASSWORD, and FROM_EMAIL environment variables.")
+                return False
+            
             # Create message
             message = MIMEMultipart("alternative")
             message["Subject"] = subject
@@ -66,6 +76,7 @@ class EmailService:
                 password=self.smtp_password,
             )
             
+            print(f"Email sent successfully to {to_email}")
             return True
         
         except Exception as e:
@@ -195,7 +206,7 @@ class EmailService:
         html_content = self._render_template(
             "welcome.html",
             user_name=user_name,
-            dashboard_url=f"{FRONTEND_URL}/dashboard"
+            dashboard_url=FRONTEND_URL
         )
         
         text_content = f"""
@@ -217,6 +228,43 @@ class EmailService:
             html_content=html_content,
             text_content=text_content
         )
+    
+    async def test_email_connection(self) -> bool:
+        """Test email service connectivity"""
+        try:
+            if not all([self.smtp_username, self.smtp_password, self.from_email]):
+                print("Email configuration incomplete")
+                return False
+            
+            # Try to send a test email to the sender's own address
+            test_subject = "TravelSmart AI - Email Service Test"
+            test_html = """
+            <html>
+                <body>
+                    <h2>Email Service Test</h2>
+                    <p>This is a test email to verify that the TravelSmart AI email service is working correctly.</p>
+                    <p>If you received this email, the email service is properly configured.</p>
+                    <p>Best regards,<br>TravelSmart AI Team</p>
+                </body>
+            </html>
+            """
+            
+            success = await self._send_email(
+                to_email=self.from_email,
+                subject=test_subject,
+                html_content=test_html
+            )
+            
+            if success:
+                print("✅ Email service test successful!")
+            else:
+                print("❌ Email service test failed!")
+            
+            return success
+            
+        except Exception as e:
+            print(f"❌ Email service test failed with error: {e}")
+            return False
     
     async def send_account_locked_email(self, email: str, user_name: str) -> bool:
         """Send account locked notification email"""
