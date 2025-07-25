@@ -62,7 +62,6 @@ class EmailService:
             server.starttls()  # Secure the connection
             server.login(self.smtp_username, self.smtp_password)
             server.send_message(message)
-            print('Email sent successfully!')   
             
             print(f"Email sent successfully to {to_email}")
             return True
