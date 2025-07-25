@@ -43,16 +43,34 @@ class UserService:
         user_dict['email_verification_token'] = verification_token
         user_dict['email_verification_token_expires'] = datetime.utcnow() + timedelta(hours=24)
 
-        # TODO: send email to user with verification token
-        
         # Create user
         db_user = User(**user_dict)
         self.db.add(db_user)
         self.db.commit()
         self.db.refresh(db_user)
         
-        # self._send_verification_email(db_user.email, verification_token)
-        print(f"TODO:Verification email sent to {db_user.email} with token {verification_token}")
+        # Send verification email
+        try:
+            from services.email import EmailService
+            email_service = EmailService()
+            user_name = db_user.first_name or db_user.username or db_user.email.split('@')[0]
+            
+            # Use the existing helper method which handles async properly
+            success = self._send_verification_email(
+                email=db_user.email,
+                token=verification_token,
+                user_name=user_name
+            )
+            
+            if success:
+                print(f"✅ Verification email sent to {db_user.email}")
+            else:
+                print(f"❌ Failed to send verification email to {db_user.email}")
+                
+        except Exception as e:
+            print(f"⚠️ Warning: Failed to send verification email to {db_user.email}: {e}")
+            print(f"   Error details: {type(e).__name__}: {str(e)}")
+            # Don't fail user creation if email fails
         
         return db_user
     
@@ -342,8 +360,8 @@ class UserService:
     
     # ==================== EMAIL VERIFICATION ====================
     
-    def verify_email(self, token: str) -> bool:
-        """Verify user email using verification token"""
+    def verify_email(self, token: str) -> tuple[bool, Optional[User]]:
+        """Verify user email using verification token and return user if successful"""
         user = self.db.query(User).filter(
             and_(
                 User.email_verification_token == token,
@@ -353,7 +371,7 @@ class UserService:
         ).first()
         
         if not user:
-            return False
+            return False, None
         
         # Mark email as verified
         user.email_verified = True
@@ -363,7 +381,24 @@ class UserService:
         user.status = UserStatusEnum.ACTIVE.value
         
         self.db.commit()
-        return True
+        
+        # Send welcome email asynchronously
+        try:
+            from services.email import EmailService
+            email_service = EmailService()
+            user_name = user.first_name or user.username or user.email.split('@')[0]
+            
+            asyncio.create_task(
+                email_service.send_welcome_email(
+                    email=user.email,
+                    user_name=user_name
+                )
+            )
+            print(f"✅ Welcome email sent to {user.email}")
+        except Exception as e:
+            print(f"⚠️ Warning: Failed to send welcome email to {user.email}: {e}")
+        
+        return True, user
     
     def resend_verification_email(self, email: str) -> Optional[str]:
         """Resend email verification token"""
@@ -377,6 +412,29 @@ class UserService:
         user.email_verification_token_expires = datetime.utcnow() + timedelta(hours=24)
         
         self.db.commit()
+        
+        # Send verification email asynchronously
+        try:
+            from services.email import EmailService
+            email_service = EmailService()
+            user_name = user.first_name or user.username or user.email.split('@')[0]
+            
+            # Use the existing helper method which handles async properly
+            success = self._send_verification_email(
+                email=user.email,
+                token=verification_token,
+                user_name=user_name
+            )
+            
+            if success:
+                print(f"✅ Resent verification email to {user.email}")
+            else:
+                print(f"❌ Failed to resend verification email to {user.email}")
+                
+        except Exception as e:
+            print(f"⚠️ Warning: Failed to resend verification email to {user.email}: {e}")
+            print(f"   Error details: {type(e).__name__}: {str(e)}")
+        
         return verification_token
     
     # ==================== STATISTICS AND ANALYTICS ====================
@@ -469,8 +527,8 @@ class UserService:
     async def _send_verification_email_async(self, email: str, user_name: str, token: str) -> bool:
         """Send email verification email asynchronously"""
         try:
-            from services.email_service import get_email_service
-            email_service = get_email_service()
+            from services.email import EmailService
+            email_service = EmailService()
             return await email_service.send_verification_email(email, user_name, token)
         except Exception as e:
             print(f"Error sending verification email to {email}: {e}")
@@ -489,8 +547,8 @@ class UserService:
     async def _send_password_reset_email_async(self, email: str, user_name: str, token: str) -> bool:
         """Send password reset email asynchronously"""
         try:
-            from services.email_service import get_email_service
-            email_service = get_email_service()
+            from services.email import EmailService
+            email_service = EmailService()
             return await email_service.send_password_reset_email(email, user_name, token)
         except Exception as e:
             print(f"Error sending password reset email to {email}: {e}")
@@ -508,8 +566,8 @@ class UserService:
     async def _send_welcome_email_async(self, email: str, user_name: str) -> bool:
         """Send welcome email asynchronously"""
         try:
-            from services.email_service import get_email_service
-            email_service = get_email_service()
+            from services.email import EmailService
+            email_service = EmailService()
             return await email_service.send_welcome_email(email, user_name)
         except Exception as e:
             print(f"Error sending welcome email to {email}: {e}")

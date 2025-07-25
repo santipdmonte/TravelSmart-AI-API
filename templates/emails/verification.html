@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verify Your TravelSmart AI Account</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      .container {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .logo {
+        font-size: 28px;
+        font-weight: bold;
+        color: #2196f3;
+        margin-bottom: 10px;
+      }
+      .subtitle {
+        color: #666;
+        font-size: 16px;
+      }
+      .content {
+        margin-bottom: 30px;
+      }
+      .greeting {
+        font-size: 18px;
+        margin-bottom: 20px;
+      }
+      .message {
+        margin-bottom: 25px;
+        font-size: 16px;
+      }
+      .button-container {
+        text-align: center;
+        margin: 30px 0;
+      }
+      .verify-button {
+        display: inline-block;
+        background-color: #2196f3;
+        color: white;
+        padding: 15px 30px;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        transition: background-color 0.3s;
+      }
+      .verify-button:hover {
+        background-color: #1976d2;
+      }
+      .link-text {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #666;
+        word-break: break-all;
+      }
+      .footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+        text-align: center;
+        font-size: 14px;
+        color: #666;
+      }
+      .warning {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 20px 0;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="logo">✈️ TravelSmart AI</div>
+        <div class="subtitle">Your AI-Powered Travel Companion</div>
+      </div>
+
+      <div class="content">
+        <div class="greeting">Hi {{ user_name }},</div>
+
+        <div class="message">
+          Welcome to TravelSmart AI! We're excited to have you join our
+          community of smart travelers. To get started with your AI-powered
+          travel planning, please verify your email address.
+        </div>
+
+        <div class="button-container">
+          <a href="{{ verification_url }}" class="verify-button"
+            >Verify Email Address</a
+          >
+        </div>
+
+        <div class="link-text">
+          If the button doesn't work, copy and paste this link into your
+          browser:<br />
+          <a href="{{ verification_url }}">{{ verification_url }}</a>
+        </div>
+
+        <div class="warning">
+          <strong>⚠️ Important:</strong> This verification link will expire in
+          24 hours for security reasons. If you don't verify your email within
+          this time, you'll need to request a new verification link.
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>Best regards,<br />The TravelSmart AI Team</p>
+        <p>
+          If you didn't create an account with TravelSmart AI, please ignore
+          this email.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

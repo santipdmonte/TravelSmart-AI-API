@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to TravelSmart AI!</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      .container {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .logo {
+        font-size: 28px;
+        font-weight: bold;
+        color: #2196f3;
+        margin-bottom: 10px;
+      }
+      .subtitle {
+        color: #666;
+        font-size: 16px;
+      }
+      .content {
+        margin-bottom: 30px;
+      }
+      .greeting {
+        font-size: 18px;
+        margin-bottom: 20px;
+      }
+      .message {
+        margin-bottom: 25px;
+        font-size: 16px;
+      }
+      .button-container {
+        text-align: center;
+        margin: 30px 0;
+      }
+      .start-button {
+        display: inline-block;
+        background-color: #4caf50;
+        color: white;
+        padding: 15px 30px;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        transition: background-color 0.3s;
+      }
+      .start-button:hover {
+        background-color: #45a049;
+      }
+      .features {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 25px 0;
+      }
+      .feature-item {
+        margin: 10px 0;
+        padding-left: 20px;
+        position: relative;
+      }
+      .feature-item:before {
+        content: "✓";
+        color: #4caf50;
+        font-weight: bold;
+        position: absolute;
+        left: 0;
+      }
+      .footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+        text-align: center;
+        font-size: 14px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="logo">✈️ TravelSmart AI</div>
+        <div class="subtitle">Your AI-Powered Travel Companion</div>
+      </div>
+
+      <div class="content">
+        <div class="greeting">Welcome, {{ user_name }}! 🎉</div>
+
+        <div class="message">
+          Your email has been successfully verified! You're now ready to start
+          planning amazing trips with our AI-powered travel assistant.
+        </div>
+
+        <div class="features">
+          <h3 style="margin-top: 0; color: #2196f3">What you can do now:</h3>
+          <div class="feature-item">
+            Create personalized AI-generated itineraries
+          </div>
+          <div class="feature-item">
+            Get smart recommendations based on your travel style
+          </div>
+          <div class="feature-item">Analyze travel documents with AI</div>
+          <div class="feature-item">
+            Discover hidden gems and local experiences
+          </div>
+          <div class="feature-item">Plan trips with real-time information</div>
+        </div>
+
+        <div class="button-container">
+          <a href="{{ dashboard_url }}" class="start-button"
+            >Start Planning Your Trip</a
+          >
+        </div>
+
+        <div class="message">
+          <strong>Pro tip:</strong> Complete your travel profile to get even
+          more personalized recommendations and unlock premium features!
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>Happy travels!<br />The TravelSmart AI Team</p>
+        <p>Questions? Contact us at support@travelsmart.ai</p>
+      </div>
+    </div>
+  </body>
+</html>
