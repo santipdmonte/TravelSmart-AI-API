@@ -234,4 +234,3 @@ class EmailVerificationResponse(BaseModel):
 class ResendVerificationResponse(BaseModel):
     """Response model for resend verification"""
     message: str
-    success: bool = True
