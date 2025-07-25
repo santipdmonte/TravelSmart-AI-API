@@ -1,142 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to TravelSmart AI!</title>
-    <style>
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        line-height: 1.6;
-        color: #333;
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: #f4f4f4;
-      }
-      .container {
-        background-color: #ffffff;
-        border-radius: 10px;
-        padding: 30px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
-      .header {
-        text-align: center;
-        margin-bottom: 30px;
-      }
-      .logo {
-        font-size: 28px;
-        font-weight: bold;
-        color: #2196f3;
-        margin-bottom: 10px;
-      }
-      .subtitle {
-        color: #666;
-        font-size: 16px;
-      }
-      .content {
-        margin-bottom: 30px;
-      }
-      .greeting {
-        font-size: 18px;
-        margin-bottom: 20px;
-      }
-      .message {
-        margin-bottom: 25px;
-        font-size: 16px;
-      }
-      .button-container {
-        text-align: center;
-        margin: 30px 0;
-      }
-      .start-button {
-        display: inline-block;
-        background-color: #4caf50;
-        color: white;
-        padding: 15px 30px;
-        text-decoration: none;
-        border-radius: 5px;
-        font-size: 16px;
-        font-weight: bold;
-        transition: background-color 0.3s;
-      }
-      .start-button:hover {
-        background-color: #45a049;
-      }
-      .features {
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        padding: 20px;
-        margin: 25px 0;
-      }
-      .feature-item {
-        margin: 10px 0;
-        padding-left: 20px;
-        position: relative;
-      }
-      .feature-item:before {
-        content: "✓";
-        color: #4caf50;
-        font-weight: bold;
-        position: absolute;
-        left: 0;
-      }
-      .footer {
-        margin-top: 40px;
-        padding-top: 20px;
-        border-top: 1px solid #eee;
-        text-align: center;
-        font-size: 14px;
-        color: #666;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <div class="logo">✈️ TravelSmart AI</div>
-        <div class="subtitle">Your AI-Powered Travel Companion</div>
-      </div>
-
-      <div class="content">
-        <div class="greeting">Welcome, {{ user_name }}! 🎉</div>
-
-        <div class="message">
-          Your email has been successfully verified! You're now ready to start
-          planning amazing trips with our AI-powered travel assistant.
-        </div>
-
-        <div class="features">
-          <h3 style="margin-top: 0; color: #2196f3">What you can do now:</h3>
-          <div class="feature-item">
-            Create personalized AI-generated itineraries
-          </div>
-          <div class="feature-item">
-            Get smart recommendations based on your travel style
-          </div>
-          <div class="feature-item">Analyze travel documents with AI</div>
-          <div class="feature-item">
-            Discover hidden gems and local experiences
-          </div>
-          <div class="feature-item">Plan trips with real-time information</div>
-        </div>
-
-        <div class="button-container">
-          <a href="{{ dashboard_url }}" class="start-button"
-            >Start Planning Your Trip</a
-          >
-        </div>
-
-        <div class="message">
-          <strong>Pro tip:</strong> Complete your travel profile to get even
-          more personalized recommendations and unlock premium features!
-        </div>
-      </div>
-
-      <div class="footer">
-        <p>Happy travels!<br />The TravelSmart AI Team</p>
-        <p>Questions? Contact us at support@travelsmart.ai</p>
-      </div>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">TravelSmart AI</h1>
+        <p style="color: #f0f0f0; margin: 10px 0 0 0; font-size: 16px;">Welcome aboard!</p>
     </div>
-  </body>
-</html>
+    
+    <div style="background: #ffffff; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h2 style="color: #333; margin-top: 0;">🎉 Welcome to TravelSmart AI!</h2>
+        <p>Hi {{ user_name }},</p>
+        <p>Congratulations! Your email has been verified successfully and you're now part of the TravelSmart AI community.</p>
+        
+        <p>You can now start planning your amazing trips with our AI-powered travel assistant that will help you:</p>
+        <ul style="padding-left: 20px;">
+            <li>Create personalized itineraries</li>
+            <li>Find the best flights and accommodations</li>
+            <li>Discover hidden gems and local experiences</li>
+            <li>Get real-time travel recommendations</li>
+        </ul>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{ dashboard_url }}" style="background-color: #2196F3; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Start Planning Your Trip</a>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 5px; border-left: 4px solid #2196F3; margin: 20px 0;">
+            <h3 style="color: #333; margin-top: 0; font-size: 16px;">🚀 Quick Start Tips:</h3>
+            <p style="margin-bottom: 0; font-size: 14px;">
+                • Visit your dashboard to create your first trip<br>
+                • Upload travel documents for instant analysis<br>
+                • Ask our AI assistant for personalized recommendations
+            </p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        
+        <p style="color: #666; font-size: 14px;">
+            Have questions? Our support team is here to help. Just reply to this email!
+        </p>
+        
+        <p>Happy travels!<br>
+        <strong>The TravelSmart AI Team</strong></p>
+    </div>
+</body>
+</html> 
