@@ -56,25 +56,20 @@ class EmailService:
             message["Subject"] = subject
             message["From"] = f"{self.from_name} <{self.from_email}>"
             message["To"] = to_email
-            
-            # Add text content
+
             if text_content:
                 text_part = MIMEText(text_content, "plain")
                 message.attach(text_part)
             
             # Add HTML content
             html_part = MIMEText(html_content, "html")
-            message.attach(html_part)
+            message.attach(html_part)            
             
-            # Send email
-            await aiosmtplib.send(
-                message,
-                hostname=self.smtp_host,
-                port=self.smtp_port,
-                start_tls=True,
-                username=self.smtp_username,
-                password=self.smtp_password,
-            )
+            # Add text content
+            server = smtplib.SMTP(self.smtp_host, self.smtp_port)
+            server.starttls()  # Secure the connection
+            server.login(self.smtp_username, self.smtp_password)
+            server.send_message(message)
             
             print(f"Email sent successfully to {to_email}")
             return True
