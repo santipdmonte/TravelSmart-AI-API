@@ -56,6 +56,14 @@ class EmailService:
             message["Subject"] = subject
             message["From"] = f"{self.from_name} <{self.from_email}>"
             message["To"] = to_email
+
+            if text_content:
+                text_part = MIMEText(text_content, "plain")
+                message.attach(text_part)
+            
+            # Add HTML content
+            html_part = MIMEText(html_content, "html")
+            message.attach(html_part)            
             
             # Add text content
             server = smtplib.SMTP(self.smtp_host, self.smtp_port)
