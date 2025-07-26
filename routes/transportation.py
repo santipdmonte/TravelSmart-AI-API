@@ -36,17 +36,27 @@ def get_transportation_by_id(
     db: Session = Depends(get_db)
 ):
     try:
-        return TransportationServices(db).get_transportation_by_id(transportation_id)
+        transportation = TransportationServices(db).get_transportation_by_id(transportation_id)
+        if not transportation:
+            raise HTTPException(status_code=404, detail="Transportation not found")
+        return transportation
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error getting transportation by id: {str(e)}")
 
-@transportation_router.get("/itinerary/{itinerary_id}", response_model=List[TransportationResponse])
+@transportation_router.get("/itinerary/{itinerary_id}", response_model=TransportationResponse)
 def get_transportation_by_itinerary_id(
     itinerary_id: UUID,
     db: Session = Depends(get_db)
 ):
     try:
-        return TransportationServices(db).get_transportation_by_itinerary_id(itinerary_id)
+        transportation = TransportationServices(db).get_transportation_by_itinerary_id(itinerary_id)
+        if not transportation:
+            raise HTTPException(status_code=404, detail="No transportation found for this itinerary")
+        return transportation
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error getting transportation by itinerary id: {str(e)}")
 
@@ -57,7 +67,12 @@ def update_transportation(
     db: Session = Depends(get_db)
 ):
     try:
-        return TransportationServices(db).update_transportation(transportation_id, transportation_data)
+        transportation = TransportationServices(db).update_transportation(transportation_id, transportation_data)
+        if not transportation:
+            raise HTTPException(status_code=404, detail="Transportation not found")
+        return transportation
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error updating transportation: {str(e)}")
 
@@ -67,6 +82,11 @@ def delete_transportation(
     db: Session = Depends(get_db)
 ):
     try:
-        return TransportationServices(db).delete_transportation(transportation_id)
+        success = TransportationServices(db).delete_transportation(transportation_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Transportation not found")
+        return None
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error deleting transportation: {str(e)}")
