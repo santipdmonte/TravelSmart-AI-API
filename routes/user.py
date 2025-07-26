@@ -230,11 +230,17 @@ async def reset_password(
     user_service: UserService = Depends(get_user_service)
 ):
     """Reset password with token"""
-    success = user_service.reset_password(reset_data)
-    if not success:
+    try:
+        success = user_service.reset_password(reset_data)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token"
+            )
+    except ValueError as e: # 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired reset token"
+            detail=str(e)
         )
     
     return {"message": "Password reset successfully"}
@@ -247,11 +253,12 @@ async def change_password(
     user_service: UserService = Depends(get_user_service)
 ):
     """Change user password"""
-    success = user_service.change_password(current_user.id, password_data)
-    if not success:
+    try:
+        user_service.change_password(current_user.id, password_data)
+    except ValueError as e: # <-- BLOQUE AÑADIDO Y LÓGICA SIMPLIFICADA
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Current password is incorrect"
+            detail=str(e)
         )
     
     return {"message": "Password changed successfully"}

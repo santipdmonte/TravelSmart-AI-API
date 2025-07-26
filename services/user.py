@@ -315,6 +315,10 @@ class UserService:
         # Verify current password
         if not self._verify_password(password_data.current_password, user.password_hash):
             return False
+
+        # Check if the new password is the same as the old one
+        if password_data.current_password == password_data.new_password:
+            raise ValueError("New password cannot be the same as the old password")
         
         # Update password
         user.password_hash = self._hash_password(password_data.new_password)
@@ -334,6 +338,18 @@ class UserService:
         user.password_reset_token_expires = datetime.utcnow() + timedelta(hours=1)
         
         self.db.commit()
+
+        try:
+            user_name = user.first_name or user.username or user.email.split('@')[0]
+            self._send_password_reset_email(
+                email=user.email,
+                token=reset_token,
+                user_name=user_name
+            )
+            print(f"✅ Password reset email sent to {user.email}")
+        except Exception as e:
+            print(f"❌ Failed to send password reset email to {user.email}: {e}")
+    
         return reset_token
     
     def reset_password(self, reset_data: UserPasswordResetConfirm) -> bool:
@@ -348,6 +364,10 @@ class UserService:
         
         if not user:
             return False
+        
+        # Check if the new password is the same as the current one
+        if self._verify_password(reset_data.new_password, user.password_hash):
+            raise ValueError("New password cannot be the same as the old password")
         
         # Update password and clear reset token
         user.password_hash = self._hash_password(reset_data.new_password)
