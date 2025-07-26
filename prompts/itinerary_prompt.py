@@ -3,6 +3,26 @@ from schemas.itinerary import ItineraryGenerate
 def get_itinerary_prompt(state: ItineraryGenerate):
 
     PROMPT = f"""
+Eres el encargado en crear itinerarios para viajes.
+
+El usuario te ha proporcionado la siguiente información:
+
+Destino: {state.trip_name}
+Duración: {state.duration_days}
+
+El itinerario debe ser creado para el pasajero y debe ser personalizado.
+
+Se considera un nuevo destino cuando el pasajero debe dormir en otro lugar que no sea el destino actual.
+
+Por cada dia del viaje, plantea actividades detalladas con un poco de explicacion sobre la actividad en cuestion.
+
+"""
+
+    return PROMPT
+
+def get_itinerary_prompt2(state: ItineraryGenerate):
+
+    PROMPT = f"""
 # PROMPT MAESTRO PARA GENERACIÓN DE ITINERARIOS PERSONALIZADOS
 
 ## IDENTIDAD DEL ASISTENTE
