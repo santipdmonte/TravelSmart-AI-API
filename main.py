@@ -5,6 +5,7 @@ from routes.travel_classifier_routes import travel_classifier_router
 from routes.document_analyzer_router import document_analyzer_router
 from routes.itinerary import itinerary_router
 from routes.user import router as auth_router, user_router
+from routes.transportation import transportation_router
 from database import engine
 from dependencies import get_db
 from models.itinerary import Base as ItineraryBase
@@ -35,6 +36,7 @@ UserBase.metadata.create_all(bind=engine)
 app.include_router(auth_router)  # Authentication routes (/auth)
 app.include_router(user_router)  # User management routes (/users)
 app.include_router(itinerary_router)  # Itinerary routes
+app.include_router(transportation_router)  # Transport routes
 # app.include_router(travel_classifier_router)
 # app.include_router(document_analyzer_router)
 

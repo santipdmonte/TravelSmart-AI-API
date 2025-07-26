@@ -4,8 +4,8 @@ from sqlalchemy.sql import func
 from datetime import datetime, date, timedelta
 import enum
 import uuid
+from sqlalchemy.orm import Mapped, mapped_column
 from database import Base
-
 
 class UserStatusEnum(enum.Enum):
     ACTIVE = "active"
@@ -50,123 +50,123 @@ class User(Base):
     __tablename__ = "users"
 
     # Primary identification
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Authentication fields
-    email = Column(String(255), nullable=False, unique=True, index=True)
-    password_hash = Column(String(255), nullable=False)
-    username = Column(String(50), nullable=True, unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    username: Mapped[str] = mapped_column(String(50), nullable=True, unique=True, index=True)
     
     # Basic profile information
-    first_name = Column(String(100), nullable=True)
-    last_name = Column(String(100), nullable=True)
-    display_name = Column(String(150), nullable=True)
+    first_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    last_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    display_name: Mapped[str] = mapped_column(String(150), nullable=True)
     
     # Profile details
-    profile_picture_url = Column(String(500), nullable=True)
-    bio = Column(Text, nullable=True)
-    date_of_birth = Column(Date, nullable=True)
-    phone_number = Column(String(20), nullable=True)
+    profile_picture_url: Mapped[str] = mapped_column(String(500), nullable=True)
+    bio: Mapped[str] = mapped_column(Text, nullable=True)
+    date_of_birth: Mapped[Date] = mapped_column(Date, nullable=True)
+    phone_number: Mapped[str] = mapped_column(String(20), nullable=True)
     
     # Location information
-    country = Column(String(100), nullable=True)
-    city = Column(String(100), nullable=True)
-    timezone = Column(String(50), nullable=True, default="UTC")
+    country: Mapped[str] = mapped_column(String(100), nullable=True)
+    city: Mapped[str] = mapped_column(String(100), nullable=True)
+    timezone: Mapped[str] = mapped_column(String(50), nullable=True, default="UTC")
     
     # Account status and role
-    status = Column(String(30), nullable=False, default=UserStatusEnum.PENDING_VERIFICATION.value)
-    role = Column(String(20), nullable=False, default=UserRoleEnum.USER.value)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default=UserStatusEnum.PENDING_VERIFICATION.value)
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default=UserRoleEnum.USER.value)
     
     # Email verification
-    email_verified = Column(Boolean, nullable=False, default=False)
-    email_verified_at = Column(DateTime(timezone=True), nullable=True)
-    email_verification_token = Column(String(255), nullable=True, unique=True)
-    email_verification_token_expires = Column(DateTime(timezone=True), nullable=True)
-    
+    email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    email_verified_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
+    email_verification_token: Mapped[str] = mapped_column(String(255), nullable=True, unique=True)
+    email_verification_token_expires: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # Password reset
-    password_reset_token = Column(String(255), nullable=True, unique=True)
-    password_reset_token_expires = Column(DateTime(timezone=True), nullable=True)
-    password_changed_at = Column(DateTime(timezone=True), nullable=True)
+    password_reset_token: Mapped[str] = mapped_column(String(255), nullable=True, unique=True)
+    password_reset_token_expires: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
+    password_changed_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Travel preferences
-    preferred_currency = Column(String(3), nullable=False, default=CurrencyEnum.USD.value)
-    preferred_travel_style = Column(String(20), nullable=True)
-    travel_interests = Column(JSON, nullable=True)  # Array of interests like ['adventure', 'culture', 'food']
-    dietary_restrictions = Column(JSON, nullable=True)  # Array of dietary needs
-    accessibility_needs = Column(JSON, nullable=True)  # Array of accessibility requirements
+    preferred_currency: Mapped[str] = mapped_column(String(3), nullable=False, default=CurrencyEnum.USD.value)
+    preferred_travel_style: Mapped[str] = mapped_column(String(20), nullable=True)
+    travel_interests: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Array of interests like ['adventure', 'culture', 'food']
+    dietary_restrictions: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Array of dietary needs
+    accessibility_needs: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Array of accessibility requirements
     
     # Travel experience
-    countries_visited = Column(JSON, nullable=True)  # Array of country codes
-    languages_spoken = Column(JSON, nullable=True)  # Array of language codes
-    travel_experience_level = Column(String(20), nullable=True)  # beginner, intermediate, expert
+    countries_visited: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Array of country codes
+    languages_spoken: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Array of language codes
+    travel_experience_level: Mapped[str] = mapped_column(String(20), nullable=True)  # beginner, intermediate, expert
     
     # Preferences and settings
-    notification_preferences = Column(JSON, nullable=True)  # Email, push, SMS preferences
-    privacy_settings = Column(JSON, nullable=True)  # Profile visibility, data sharing preferences
-    measurement_system = Column(String(10), nullable=False, default="metric")  # metric or imperial
+    notification_preferences: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Email, push, SMS preferences
+    privacy_settings: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Profile visibility, data sharing preferences
+    measurement_system: Mapped[str] = mapped_column(String(10), nullable=False, default="metric")  # metric or imperial
     
     # Subscription and billing
-    subscription_type = Column(String(20), nullable=False, default="free")  # free, premium, enterprise
-    subscription_start_date = Column(DateTime(timezone=True), nullable=True)
-    subscription_end_date = Column(DateTime(timezone=True), nullable=True)
+    subscription_type: Mapped[str] = mapped_column(String(20), nullable=False, default="free")  # free, premium, enterprise
+    subscription_start_date: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
+    subscription_end_date: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Social features
-    is_public_profile = Column(Boolean, nullable=False, default=False)
-    allow_friend_requests = Column(Boolean, nullable=False, default=True)
-    share_travel_stats = Column(Boolean, nullable=False, default=False)
+    is_public_profile: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    allow_friend_requests: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    share_travel_stats: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     
     # Security and authentication tracking
-    last_login_at = Column(DateTime(timezone=True), nullable=True)
-    last_login_location = Column(JSON, nullable=True)  # Store location data from third-party API
-    current_login_at = Column(DateTime(timezone=True), nullable=True)
-    current_login_location = Column(JSON, nullable=True)  # Store location data from third-party API
-    login_count = Column(Integer, nullable=False, default=0)
-    failed_login_attempts = Column(Integer, nullable=False, default=0)
-    last_failed_login_at = Column(DateTime(timezone=True), nullable=True)
-    last_failed_login_location = Column(JSON, nullable=True)  # Store location data from third-party API
-    account_locked_until = Column(DateTime(timezone=True), nullable=True)
+    last_login_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_login_location: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Store location data from third-party API
+    current_login_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
+    current_login_location: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Store location data from third-party API
+    login_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_failed_login_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_failed_login_location: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Store location data from third-party API
+    account_locked_until: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Session management
-    active_sessions = Column(JSON, nullable=True)  # Store active session tokens/IDs
-    last_activity_at = Column(DateTime(timezone=True), nullable=True)
+    active_sessions: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Store active session tokens/IDs
+    last_activity_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Two-factor authentication
-    two_factor_enabled = Column(Boolean, nullable=False, default=False)
-    two_factor_secret = Column(String(255), nullable=True)
-    backup_codes = Column(JSON, nullable=True)  # Array of backup codes for 2FA
+    two_factor_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    two_factor_secret: Mapped[str] = mapped_column(String(255), nullable=True)
+    backup_codes: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Array of backup codes for 2FA
     
     # Marketing and communication
-    marketing_consent = Column(Boolean, nullable=False, default=False)
-    newsletter_subscribed = Column(Boolean, nullable=False, default=False)
+    marketing_consent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    newsletter_subscribed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     
     # Analytics and tracking
-    total_trips_created = Column(Integer, nullable=False, default=0)
-    total_trips_completed = Column(Integer, nullable=False, default=0)
-    favorite_destinations = Column(JSON, nullable=True)  # Top destinations based on user activity
+    total_trips_created: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_trips_completed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    favorite_destinations: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Top destinations based on user activity
     
     # Onboarding and user journey
-    onboarding_completed = Column(Boolean, nullable=False, default=False)
-    onboarding_step = Column(Integer, nullable=True)  # Current step in onboarding process
-    first_trip_created = Column(Boolean, nullable=False, default=False)
+    onboarding_completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    onboarding_step: Mapped[int] = mapped_column(Integer, nullable=True)  # Current step in onboarding process
+    first_trip_created: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     
     # GDPR and data management
-    data_processing_consent = Column(Boolean, nullable=False, default=False)
-    data_export_requested_at = Column(DateTime(timezone=True), nullable=True)
-    data_deletion_requested_at = Column(DateTime(timezone=True), nullable=True)
+    data_processing_consent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    data_export_requested_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
+    data_deletion_requested_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Audit fields
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-    deleted_at = Column(DateTime(timezone=True), nullable=True)  # Soft delete
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    deleted_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)  # Soft delete
     
     # Referral system
-    referral_code = Column(String(20), nullable=True, unique=True, index=True)
-    referred_by_user_id = Column(UUID(as_uuid=True), nullable=True, index=True)
-    referral_earnings = Column(Float, nullable=False, default=0.0)
+    referral_code: Mapped[str] = mapped_column(String(20), nullable=True, unique=True, index=True)
+    referred_by_user_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    referral_earnings: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     
     # Device and browser tracking
-    last_user_agent = Column(Text, nullable=True)
-    preferred_language = Column(String(10), nullable=True, default="en")
+    last_user_agent: Mapped[str] = mapped_column(Text, nullable=True)
+    preferred_language: Mapped[str] = mapped_column(String(10), nullable=True, default="en")
     
     def __str__(self):
         return self.display_name or self.username or self.email

@@ -47,6 +47,7 @@ class ItineraryBase(BaseModel):
     trip_name: str = Field(..., max_length=200, description="Name of the trip")
     visibility: VisibilityEnum = Field(default=VisibilityEnum.PRIVATE, description="Visibility level of the itinerary")
     status: StatusEnum = Field(default=StatusEnum.DRAFT, description="Status of the itinerary")
+    transportation_id: Optional[uuid.UUID] = Field(None, description="UUID identifier of the associated transportation")
 
     class Config:
         use_enum_values = True
@@ -71,6 +72,7 @@ class ItineraryCreate(BaseModel):
     trip_name: str = Field(..., max_length=200, description="Name of the trip")
     visibility: VisibilityEnum = Field(default=VisibilityEnum.PRIVATE, description="Visibility level of the itinerary")
     status: StatusEnum = Field(default=StatusEnum.DRAFT, description="Status of the itinerary")
+    transportation_id: Optional[uuid.UUID] = Field(None, description="UUID identifier of the associated transportation")
 
     class Config:
         use_enum_values = True
@@ -94,6 +96,7 @@ class ItineraryUpdate(BaseModel):
     trip_name: Optional[str] = Field(None, max_length=200, description="Name of the trip")
     visibility: Optional[VisibilityEnum] = Field(None, description="Visibility level of the itinerary")
     status: Optional[StatusEnum] = Field(None, description="Status of the itinerary")
+    transportation_id: Optional[uuid.UUID] = Field(None, description="UUID identifier of the associated transportation")
 
     class Config:
         use_enum_values = True
@@ -136,6 +139,7 @@ class ItineraryList(BaseModel):
     trip_type: Optional[TripTypeEnum] = Field(None, description="Type of trip")
     visibility: VisibilityEnum = Field(..., description="Visibility level")
     status: StatusEnum = Field(..., description="Status of the itinerary")
+    transportation_id: Optional[uuid.UUID] = Field(None, description="UUID identifier of the associated transportation")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
 
