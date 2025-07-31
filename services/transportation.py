@@ -4,6 +4,7 @@ from models.transportation import Transportation
 from models.itinerary import Itinerary
 from uuid import UUID
 from typing import List, Optional
+from graphs.transportation_agent import generate_transportation_agent
 
 class TransportationServices:
     def __init__(self, db: Session):
@@ -67,3 +68,14 @@ class TransportationServices:
         self.db.delete(db_transportation)
         self.db.commit()
         return True
+
+    def generate_transportation(self, itinerary_id: UUID) -> Transportation:
+        itinerary = self.db.query(Itinerary).filter(Itinerary.itinerary_id == itinerary_id).first()
+        if not itinerary:
+            return None
+        
+        result = generate_transportation_agent(itinerary)
+
+        trasnportation_details = TransportationCreate(transportation_details=result)
+
+        return self.create_transportation(trasnportation_details, itinerary_id)
