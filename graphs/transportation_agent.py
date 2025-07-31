@@ -9,9 +9,10 @@ llm = init_chat_model("gpt-4o-mini", model_provider="openai")
 # llm = init_chat_model("o4-mini-2025-04-16", model_provider="openai")
 
 def generate_transportation_agent(itinerary: Itinerary):
-    # prompt = get_transportation_prompt(itinerary)
-    # result = llm.invoke(prompt)
-    result = "Transportation details AGENT TEST"
-    return result
+    prompt = get_transportation_prompt(itinerary)
+    result = llm.invoke(prompt)
+    return result.content
+
+
 
 
