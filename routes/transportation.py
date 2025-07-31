@@ -21,6 +21,16 @@ def create_transportation(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error creating transportation: {str(e)}")
 
+@transportation_router.post("/agent", response_model=TransportationResponse, status_code=201)
+def generate_transportation(
+    itinerary_id: UUID,
+    db: Session = Depends(get_db)
+):
+    try:
+        return TransportationServices(db).generate_transportation(itinerary_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error generating transportation: {str(e)}")
+
 @transportation_router.get("/", response_model=List[TransportationResponse])
 def get_all_transportations(
     db: Session = Depends(get_db)
