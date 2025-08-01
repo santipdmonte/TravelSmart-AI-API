@@ -19,7 +19,7 @@ class Question(Base):
     deleted_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    options = relationship("Option", back_populates="question", cascade="all, delete-orphan")
+    question_options = relationship("QuestionOption", back_populates="question", cascade="all, delete-orphan")
     user_answers = relationship("UserAnswer", back_populates="question")
 
     __table_args__ = (

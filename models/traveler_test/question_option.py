@@ -5,8 +5,8 @@ from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
-class Option(Base):
-    __tablename__ = "options"
+class QuestionOption(Base):
+    __tablename__ = "question_options"
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     question_id: Mapped[UUID] = mapped_column(ForeignKey("questions.id", ondelete="CASCADE"), nullable=False)
@@ -18,9 +18,9 @@ class Option(Base):
     deleted_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    question = relationship("Question", back_populates="options")
-    option_scores = relationship("OptionScore", back_populates="option", cascade="all, delete-orphan")
-    user_answers = relationship("UserAnswer", back_populates="option")
+    question = relationship("Question", back_populates="question_options")
+    question_option_scores = relationship("QuestionOptionScore", back_populates="question_option", cascade="all, delete-orphan")
+    user_answers = relationship("UserAnswer", back_populates="question_option")
 
     __table_args__ = (
         CheckConstraint("length(trim(option)) > 0", name="check_option_not_empty"),

@@ -18,7 +18,7 @@ class TravelerType(Base):
     deleted_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    option_scores = relationship("OptionScore", back_populates="traveler_type", cascade="all, delete-orphan")
+    question_option_scores = relationship("QuestionOptionScore", back_populates="traveler_type", cascade="all, delete-orphan")
     user_tests = relationship("UserTravelerTest", back_populates="traveler_type")
 
     __table_args__ = (
