@@ -18,6 +18,7 @@ class UserTravelerTest(Base):
     deleted_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
+    user = relationship("User")
     traveler_type = relationship("TravelerType", back_populates="user_tests")
     user_answers = relationship("UserAnswer", back_populates="user_traveler_test", cascade="all, delete-orphan")
 
