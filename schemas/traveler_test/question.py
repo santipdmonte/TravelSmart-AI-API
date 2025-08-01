@@ -4,6 +4,8 @@ from datetime import datetime
 from uuid import UUID
 
 class StrippedQuestionValidator(BaseModel):
+    question: Optional[str] = Field(None, min_length=1, max_length=500, description="The question text")
+
     @field_validator('question')
     @classmethod
     def question_must_not_be_empty(cls, v: Optional[str]) -> Optional[str]:
@@ -24,7 +26,6 @@ class QuestionCreate(QuestionBase):
     pass
 
 class QuestionUpdate(StrippedQuestionValidator):
-    question: Optional[str] = Field(None, min_length=1, max_length=500, description="The question text")
     order: Optional[int] = Field(None, gt=0, description="Question order (must be positive)")
     category: Optional[str] = Field(None, max_length=255, description="Question category")
     image_url: Optional[str] = Field(None, max_length=500, description="Optional image URL")

@@ -4,6 +4,8 @@ from datetime import datetime
 from uuid import UUID
 
 class StrippedNameValidator(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255, description="Traveler type name")
+
     @field_validator('name')
     @classmethod
     def name_must_not_be_empty(cls, v: Optional[str]) -> Optional[str]:
@@ -24,7 +26,6 @@ class TravelerTypeCreate(TravelerTypeBase):
     pass
 
 class TravelerTypeUpdate(StrippedNameValidator):
-    name: Optional[str] = Field(None, min_length=1, max_length=255, description="Traveler type name")
     description: Optional[str] = Field(None, max_length=500, description="Traveler type description")
     prompt_description: Optional[str] = Field(None, max_length=1000, description="Description for AI prompts")
     image_url: Optional[str] = Field(None, max_length=500, description="Optional image URL")

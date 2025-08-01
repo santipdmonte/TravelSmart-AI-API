@@ -4,6 +4,8 @@ from datetime import datetime
 from uuid import UUID
 
 class OptionStrippingMixin(BaseModel):
+    option: Optional[str] = Field(None, min_length=1, max_length=255, description="The option text")
+
     @field_validator('option')
     @classmethod
     def option_must_not_be_empty(cls, v):
@@ -20,7 +22,6 @@ class QuestionOptionCreate(QuestionOptionBase):
     question_id: UUID = Field(..., description="ID of the question this option belongs to")
 
 class QuestionOptionUpdate(OptionStrippingMixin):
-    option: Optional[str] = Field(None, min_length=1, max_length=255, description="The option text")
     description: Optional[str] = Field(None, max_length=500, description="Option description")
     image_url: Optional[str] = Field(None, max_length=500, description="Optional image URL")
 
