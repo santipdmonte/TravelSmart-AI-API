@@ -19,7 +19,6 @@ class Question(Base):
 
     # Relationships
     question_options = relationship("QuestionOption", back_populates="question", cascade="all, delete-orphan")
-    user_answers = relationship("UserAnswer", back_populates="question")
 
     __table_args__ = (
         CheckConstraint("length(trim(question)) > 0", name="check_question_not_empty"),
