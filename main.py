@@ -11,6 +11,7 @@ from routes.traveler_test.user_traveler_test import router as user_traveler_test
 from routes.traveler_test.question import router as question_router
 from routes.traveler_test.question_option import router as question_option_router
 from routes.traveler_test.question_option_score import router as question_option_score_router
+from routes.traveler_test.user_answers import router as user_answers_router
 from database import engine
 from dependencies import get_db
 from models.itinerary import Base as ItineraryBase
@@ -59,6 +60,7 @@ app.include_router(user_traveler_test_router)  # User traveler test routes (/tra
 app.include_router(question_router)  # Question routes (/questions)
 app.include_router(question_option_router)  # Question option routes (/question-options)
 app.include_router(question_option_score_router)  # Question option score routes (/question-option-scores)
+app.include_router(user_answers_router)  # User answers routes (/user-answers)
 # app.include_router(travel_classifier_router)
 # app.include_router(document_analyzer_router)
 
