@@ -8,6 +8,7 @@ from routes.user import router as auth_router, user_router
 from routes.transportation import transportation_router
 from routes.traveler_test.traveler_type import router as traveler_type_router
 from routes.traveler_test.user_traveler_test import router as user_traveler_test_router
+from routes.traveler_test.question import router as question_router
 from database import engine
 from dependencies import get_db
 from models.itinerary import Base as ItineraryBase
@@ -53,6 +54,7 @@ app.include_router(itinerary_router)  # Itinerary routes
 app.include_router(transportation_router)  # Transport routes
 app.include_router(traveler_type_router)  # Traveler type routes (/traveler-types)
 app.include_router(user_traveler_test_router)  # User traveler test routes (/traveler-tests)
+app.include_router(question_router)  # Question routes (/questions)
 # app.include_router(travel_classifier_router)
 # app.include_router(document_analyzer_router)
 
