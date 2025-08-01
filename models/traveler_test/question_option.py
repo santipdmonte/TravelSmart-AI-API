@@ -30,4 +30,4 @@ class QuestionOption(Base):
         return self.option
 
     def __repr__(self):
-        return f"<Option(id={self.id}, option='{self.option}')>"
+        return f"<QuestionOption(id={self.id}, option='{self.option}')>"
