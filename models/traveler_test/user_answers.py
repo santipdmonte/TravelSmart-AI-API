@@ -19,10 +19,6 @@ class UserAnswer(Base):
     user_traveler_test = relationship("UserTravelerTest", back_populates="user_answers")
     question_option = relationship("QuestionOption", back_populates="user_answers")
 
-    __table_args__ = (
-        UniqueConstraint('user_traveler_test_id', 'question_option_id', name='uq_user_test_question_option'),  # One answer per question option per test
-    )
-
     def __str__(self):
         return f"Answer for option {self.question_option_id}"
 
