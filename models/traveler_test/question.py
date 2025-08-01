@@ -10,7 +10,7 @@ class Question(Base):
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     question: Mapped[str] = mapped_column(String(500), nullable=False)
-    order: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
+    order: Mapped[int] = mapped_column(Integer, nullable=True)
     category: Mapped[str] = mapped_column(String(255), nullable=True)
     image_url: Mapped[str] = mapped_column(String(500), nullable=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

@@ -18,7 +18,7 @@ class StrippedQuestionValidator(BaseModel):
 
 class QuestionBase(StrippedQuestionValidator):
     question: str = Field(..., min_length=1, max_length=500, description="The question text")
-    order: int = Field(..., gt=0, description="Question order (must be positive)")
+    order: Optional[int] = Field(None, gt=0, description="Question order (must be positive if provided)")
     category: Optional[str] = Field(None, max_length=255, description="Question category")
     image_url: Optional[str] = Field(None, max_length=500, description="Optional image URL")
 
