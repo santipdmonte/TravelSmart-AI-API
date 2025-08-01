@@ -5,6 +5,12 @@ from sqlalchemy import pool
 
 from models.user import Base as UserBase
 from models.itinerary import Base as ItineraryBase
+from models.traveler_test.question import Base as QuestionBase
+from models.traveler_test.question_option import Base as QuestionOptionBase
+from models.traveler_test.question_option_score import Base as QuestionOptionScoreBase
+from models.traveler_test.traveler_type import Base as TravelerTypeBase
+from models.traveler_test.user_answers import Base as UserAnswersBase
+from models.traveler_test.user_traveler_test import Base as UserTravelerTestBase
 
 from alembic import context
 
