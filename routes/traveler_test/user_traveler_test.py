@@ -10,7 +10,6 @@ from schemas.traveler_test.user_traveler_test import (
     UserTravelerTestUpdate, 
     UserTravelerTestResponse, 
     UserTravelerTestDetailResponse,
-    UserTravelerTestComplete,
     UserTravelerTestStats
 )
 from utils.jwt_utils import get_current_active_user, get_admin_user
@@ -93,10 +92,7 @@ async def complete_user_traveler_test(
         )
     
     try:
-
-        test_data = UserTravelerTestUpdate(completed_at=datetime.now())
-
-        completed_test = test_service.update_user_traveler_test(test_id, test_data)
+        completed_test = test_service.complete_user_traveler_test(test_id)
         if not completed_test:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -315,3 +311,24 @@ async def get_user_traveler_tests(
     """Get all traveler tests for a specific user (admin only)"""
     tests = test_service.get_user_traveler_tests_by_user(user_id, skip=skip, limit=limit)
     return [UserTravelerTestResponse.model_validate(test) for test in tests]
+
+
+@router.get("/{traveler_test_id}/scores")
+async def get_test_scores(
+    traveler_test_id: uuid.UUID,
+    current_user: User = Depends(get_current_active_user),
+    test_service: UserTravelerTestService = Depends(get_user_traveler_test_service)
+):
+    """Get scores for a specific test"""
+    scores = test_service.get_test_scores(traveler_test_id)
+    return scores
+
+@router.get("/{traveler_test_id}/user-traveler-type")
+async def calculate_user_traveler_type(
+    traveler_test_id: uuid.UUID,
+    current_user: User = Depends(get_current_active_user),
+    test_service: UserTravelerTestService = Depends(get_user_traveler_test_service)
+):
+    """Calculate the traveler type for a specific test"""
+    user_traveler_type = test_service.get_user_traveler_type_by_scores(traveler_test_id)
+    return user_traveler_type

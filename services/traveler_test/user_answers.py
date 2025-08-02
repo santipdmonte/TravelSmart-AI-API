@@ -228,7 +228,6 @@ class UserAnswerService:
             raise ValueError(f"Failed to change answer: {str(e)}")
     
     # ==================== BUSINESS LOGIC METHODS ====================
-    
     def get_user_answer_statistics(self) -> Dict[str, Any]:
         """Get statistics about user answers"""
         total_answers = self.db.query(UserAnswer).filter(

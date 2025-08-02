@@ -12,7 +12,9 @@ from dependencies import get_db
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import uuid
-
+from models.traveler_test.traveler_type import TravelerType
+from models.traveler_test.user_answers import UserAnswer
+from models.traveler_test.question_option_score import QuestionOptionScore
 
 class UserTravelerTestService:
     """Service class for UserTravelerTest CRUD operations and business logic"""
@@ -101,20 +103,25 @@ class UserTravelerTestService:
         self.db.refresh(test)
         return test
     
-    # def complete_user_traveler_test(self, test_id: uuid.UUID) -> Optional[UserTravelerTest]:
-    #     """Complete a user traveler test"""
-    #     test = self.get_user_traveler_test_by_id(test_id)
-    #     if not test:
-    #         return None
+    def complete_user_traveler_test(self, test_id: uuid.UUID) -> Optional[UserTravelerTest]:
+        """Complete a user traveler test"""
+        test = self.get_user_traveler_test_by_id(test_id)
+        if not test:
+            return None
         
-    #     if test.completed_at:
-    #         raise ValueError("Test is already completed")
+        if test.completed_at:
+            raise ValueError("Test is already completed")
         
-    #     test.completed_at = datetime.now()
+        test.completed_at = datetime.now()
+
+        # Calculate the traveler type for the test
+        traveler_type_id = self.get_user_traveler_type_by_scores(test_id)
+        if traveler_type_id:
+            test.traveler_type_id = traveler_type_id
         
-    #     self.db.commit()
-    #     self.db.refresh(test)
-    #     return test
+        self.db.commit()
+        self.db.refresh(test)
+        return test
     
     def soft_delete_user_traveler_test(self, test_id: uuid.UUID) -> bool:
         """Soft delete a user traveler test"""
@@ -144,6 +151,55 @@ class UserTravelerTestService:
         return test
     
     # ==================== BUSINESS LOGIC METHODS ====================
+
+    def get_test_scores(self, user_traveler_test_id: uuid.UUID):
+        """Calculate the scores for a user traveler test"""
+        test = self.get_user_traveler_test_by_id(user_traveler_test_id)
+        if not test:
+            return None
+
+        # Get all answers for the test
+        answers = self.db.query(UserAnswer).filter(
+            UserAnswer.user_traveler_test_id == user_traveler_test_id
+        ).all()
+
+        if not answers:
+            return {}
+
+        # Get all question options scores for the test
+        question_option_scores = self.db.query(
+            QuestionOptionScore.traveler_type_id,
+            QuestionOptionScore.score
+        ).filter(
+            QuestionOptionScore.question_option_id.in_([answer.question_option_id for answer in answers])
+        ).all()
+
+        # Group scores by traveler type ID and sum them
+        scores = {}
+        for score_record in question_option_scores:
+            traveler_type_id = score_record.traveler_type_id
+            score_value = score_record.score
+            
+            if traveler_type_id not in scores:
+                scores[traveler_type_id] = 0
+            
+            scores[traveler_type_id] += score_value
+
+        return scores
+    
+    def get_user_traveler_type_by_scores(self, user_traveler_test_id: uuid.UUID):
+        """Get the traveler type ID with the highest score for a user test"""
+        scores = self.get_test_scores(user_traveler_test_id)
+        
+        if not scores:
+            return None
+        
+        # Find the traveler type with the maximum score
+        max_score = max(scores.values())
+        max_traveler_type_ids = [traveler_type_id for traveler_type_id, score in scores.items() if score == max_score]
+        
+        # If there's a tie, return the first one TODO: Handle ties
+        return max_traveler_type_ids[0] if max_traveler_type_ids else None
     
     def get_test_stats(self, test_id: uuid.UUID) -> Optional[UserTravelerTestStats]:
         """Get statistics for a specific test"""
