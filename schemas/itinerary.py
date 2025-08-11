@@ -108,6 +108,9 @@ class ItineraryGenerate(BaseModel):
     """Schema for generating an itinerary"""
     trip_name: str = Field(..., max_length=200, description="Name of the trip")
     duration_days: int = Field(..., ge=1, description="Duration of the trip in days")
+    # Optional traveler profile to personalize generation (filled server-side from Traveler Test)
+    traveler_profile_name: Optional[str] = Field(None, description="Latest traveler type name for the user")
+    traveler_profile_desc: Optional[str] = Field(None, description="Description used to steer itinerary generation")
 
 
 class ItineraryResponse(ItineraryBase):
