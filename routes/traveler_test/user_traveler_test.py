@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
@@ -22,11 +22,18 @@ router = APIRouter(prefix="/traveler-tests", tags=["Traveler Tests"])
 
 @router.post("/", response_model=UserTravelerTestResponse, status_code=status.HTTP_201_CREATED)
 async def create_user_traveler_test(
+    response: Response,
     current_user: User = Depends(get_current_active_user),
     test_service: UserTravelerTestService = Depends(get_user_traveler_test_service)
 ):
     """Create a new traveler test for the current user"""
     try:
+        # If there's already an active test, return it (idempotent behavior)
+        existing = test_service.get_active_test_by_user(current_user.id)
+        if existing:
+            response.status_code = status.HTTP_200_OK
+            return UserTravelerTestResponse.model_validate(existing)
+
         test_data = UserTravelerTestCreate(
             user_id=current_user.id,
             started_at=datetime.now()

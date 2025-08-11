@@ -19,19 +19,18 @@ class QuestionService:
         self.db = db
     
     # ==================== CRUD OPERATIONS ====================
-    
+
     def create_question(self, question_data: QuestionCreate) -> Question:
         """Create a new question"""
         # If no order is provided, assign the next available order
         if not question_data.order:
             question_data.order = self.get_next_question_order()
-        
-        # Create question
+
+        # Create and persist the question
         db_question = Question(**question_data.dict())
         self.db.add(db_question)
         self.db.commit()
         self.db.refresh(db_question)
-        
         return db_question
     
     def get_question_by_id(self, question_id: uuid.UUID) -> Optional[Question]:
