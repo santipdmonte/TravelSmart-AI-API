@@ -9,8 +9,12 @@ from schemas.itinerary import (
     ItineraryUpdate, 
     ItineraryResponse, 
     ItineraryList,
-    ItineraryGenerate
+    ItineraryGenerate,
+    ItineraryProposeChangesRequest,
+    ItineraryDiffResponse,
+    ItineraryConfirmChangesRequest,
 )
+from schemas.change_log import ChangeLogResponse
 from utils.jwt_utils import get_current_user_optional
 from utils.session import get_session_id_from_request
 from models.user import User
@@ -274,3 +278,48 @@ def get_agent_state(
     if agent_state is False:
         raise HTTPException(status_code=404, detail="Agent thread not found or invalid")
     return agent_state
+
+
+@itinerary_router.post("/{itinerary_id}/propose-changes", response_model=ItineraryDiffResponse)
+def propose_itinerary_changes(
+    itinerary_id: uuid.UUID,
+    body: ItineraryProposeChangesRequest,
+    db: Session = Depends(get_db)
+):
+    """Generate a preview of changes for an itinerary based on an instruction.
+
+    Returns a structured diff instead of modifying the database.
+    """
+    service = get_itinerary_service(db)
+    diff = service.propose_itinerary_changes(itinerary_id, body.instruction)
+    if diff is None:
+        raise HTTPException(status_code=404, detail="Itinerary not found or proposal could not be generated")
+    return diff
+
+
+@itinerary_router.post("/{itinerary_id}/confirm-changes", response_model=ItineraryResponse)
+def confirm_itinerary_changes(
+    itinerary_id: uuid.UUID,
+    body: ItineraryConfirmChangesRequest,
+    db: Session = Depends(get_db)
+):
+    """Persist a previously proposed itinerary update by replacing details_itinerary and headline fields."""
+    service = get_itinerary_service(db)
+    updated = service.confirm_itinerary_changes(itinerary_id, body.proposed_itinerary)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Itinerary not found or proposed payload invalid")
+    return updated
+
+
+@itinerary_router.get("/{itinerary_id}/change-logs", response_model=List[ChangeLogResponse])
+def list_itinerary_change_logs(
+    itinerary_id: uuid.UUID,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db)
+):
+    service = get_itinerary_service(db)
+    # Ensure itinerary exists (optional but nicer errors)
+    if not service.get_itinerary_by_id(itinerary_id):
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+    return service.list_change_logs(itinerary_id, skip, limit)
