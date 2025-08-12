@@ -1,5 +1,5 @@
 from database import Base
-from sqlalchemy import String, Integer, CheckConstraint, DateTime
+from sqlalchemy import String, Integer, CheckConstraint, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
@@ -13,6 +13,7 @@ class Question(Base):
     order: Mapped[int] = mapped_column(Integer, nullable=True)
     category: Mapped[str] = mapped_column(String(255), nullable=True)
     image_url: Mapped[str] = mapped_column(String(500), nullable=True)
+    multi_select: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default='false')
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     deleted_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)

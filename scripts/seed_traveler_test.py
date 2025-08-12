@@ -11,11 +11,12 @@ Idempotent: running multiple times won't duplicate records.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple, Iterator
-from contextlib import contextmanager
-
+import argparse
 import os
 import sys
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from typing import Dict, Iterator, List, Optional
 
 # Ensure project root (one level up from scripts/) is on sys.path
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,19 +24,225 @@ PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+
+"""
+PHASE 1: Centralized data structure for the Traveler Test.
+
+NOTES:
+- Image URLs are examples from Unsplash (can be replaced with own assets).
+- Scores are in the range [-10, 10] (validated by a DB constraint).
+
+Structure:
+TRAVELER_TEST_DATA = {
+  'traveler_types': [
+     { name, description, prompt_description, image_url }
+  ],
+  'questions': [
+     {
+        'order': int,
+        'question': str,
+        'category': str,
+        'image_url': str | None,
+        'multi_select': bool,
+        'options': [
+           {
+              'option': str,
+              'description': str | None,
+              'image_url': str | None,
+              'scores': { traveler_type_name: int, ... }
+           }, ...
+        ]
+     }, ...
+  ]
+}
+"""
+
+TRAVELER_TEST_DATA: Dict[str, List[Dict]] = {
+    "traveler_types": [
+        {
+            "name": "Adventurer",
+            "description": "Loves adrenaline, nature, and physical challenges. Not afraid to step out of their comfort zone.",
+            "prompt_description": "Prioritize high-impact activities: extreme sports, trekking in remote places, wild nature exploration, and flexible transport options like 4x4 vehicles. Avoid rigid or overly touristy itineraries.",
+            "image_url": None,
+        },
+        {
+            "name": "Cultural Explorer",
+            "description": "Passionate about history, art, architecture, and local traditions. Enjoys learning on every visit.",
+            "prompt_description": "Focus the itinerary on historic centers, museums, art galleries, guided tours, local shows, and traditional cuisine. The pace can be intense but knowledge-focused.",
+            "image_url": None,
+        },
+        {
+            "name": "Relaxed Traveler",
+            "description": "Seeks to disconnect, rest, and recharge. Prefers destinations and activities that bring peace and tranquility.",
+            "prompt_description": "Create itineraries with a gentle pace. Include beach days, spa stays, nature walks without pressure, free afternoons, and quiet dinners. Avoid early mornings and tight schedules.",
+            "image_url": None,
+        },
+        {
+            "name": "Gourmet",
+            "description": "Main motivation for travel is food. From local markets to Michelin-starred restaurants.",
+            "prompt_description": "The trip should revolve around gastronomy. Include reservations at recommended restaurants, food tours, cooking classes, market visits, and tastings of local products (wine, cheese, etc.).",
+            "image_url": None,
+        },
+        {
+            "name": "Social & Nightlife",
+            "description": "Loves nightlife, meeting people, and being at the center of the action. Travels to have fun and socialize.",
+            "prompt_description": "Design a plan that includes recommendations for bars, clubs, events, and neighborhoods with vibrant nightlife. Suggest group activities and hostels or hotels with a good social atmosphere.",
+            "image_url": None,
+        },
+        {
+            "name": "Romantic",
+            "description": "Travels as a couple seeking special moments, beautiful landscapes, and intimate experiences. Ideal for honeymoons or anniversaries.",
+            "prompt_description": "Create an itinerary with candlelit dinners, boutique hotels, scenic walks, activities for two, and moments of privacy. The atmosphere should be special and cared for.",
+            "image_url": None,
+        },
+    ],
+    "questions": [
+        {
+            "order": 1,
+            "question": "What is your ideal way to explore a destination?",
+            "category": "Exploration Style",
+            "multi_select": False,
+            "options": [
+                {
+                    "option": "With a tour that takes me to the most famous places.",
+                    "scores": {"Adventurer": -2, "Cultural Explorer": 8, "Relaxed Traveler": 5, "Gourmet": 3, "Social & Nightlife": 4, "Romantic": 6},
+                },
+                {
+                    "option": "Getting lost on alternative routes.",
+                    "scores": {"Adventurer": 10, "Cultural Explorer": 6, "Relaxed Traveler": -2, "Gourmet": 4, "Social & Nightlife": 3, "Romantic": 4},
+                },
+                {
+                    "option": "Living like a local, no rush.",
+                    "scores": {"Adventurer": 2, "Cultural Explorer": 7, "Relaxed Traveler": 10, "Gourmet": 8, "Social & Nightlife": 5, "Romantic": 8},
+                },
+            ],
+        },
+        {
+            "order": 2,
+            "question": "When you think of the perfect trip, what word comes to mind?",
+            "category": "Main Interest",
+            "multi_select": False,
+            "options": [
+                {"option": "Adventure", "scores": {"Adventurer": 10, "Cultural Explorer": 0, "Relaxed Traveler": -5, "Gourmet": -1, "Social & Nightlife": 3, "Romantic": 2}},
+                {"option": "Culture", "scores": {"Adventurer": 0, "Cultural Explorer": 10, "Relaxed Traveler": 2, "Gourmet": 4, "Social & Nightlife": 1, "Romantic": 5}},
+                {"option": "Relax", "scores": {"Adventurer": -5, "Cultural Explorer": 2, "Relaxed Traveler": 10, "Gourmet": 3, "Social & Nightlife": -2, "Romantic": 8}},
+                {"option": "Flavors", "scores": {"Adventurer": 2, "Cultural Explorer": 4, "Relaxed Traveler": 3, "Gourmet": 10, "Social & Nightlife": 5, "Romantic": 6}},
+                {"option": "Party", "scores": {"Adventurer": 3, "Cultural Explorer": -2, "Relaxed Traveler": -4, "Gourmet": 2, "Social & Nightlife": 10, "Romantic": 1}},
+            ],
+        },
+        {
+            "order": 3,
+            "question": "Gastronomy on your trip is...",
+            "category": "Gastronomy",
+            "multi_select": False,
+            "options": [
+                {"option": "The main reason for my trip.", "scores": {"Adventurer": 1, "Cultural Explorer": 5, "Relaxed Traveler": 4, "Gourmet": 10, "Social & Nightlife": 5, "Romantic": 7}},
+                {"option": "Important, I like to try everything.", "scores": {"Adventurer": 6, "Cultural Explorer": 8, "Relaxed Traveler": 6, "Gourmet": 7, "Social & Nightlife": 6, "Romantic": 8}},
+                {"option": "Just a way to recharge energy.", "scores": {"Adventurer": 4, "Cultural Explorer": -3, "Relaxed Traveler": 2, "Gourmet": -5, "Social & Nightlife": 3, "Romantic": 1}},
+                {"option": "I prefer cheap and on-the-go options.", "scores": {"Adventurer": 7, "Cultural Explorer": 2, "Relaxed Traveler": 3, "Gourmet": 1, "Social & Nightlife": 6, "Romantic": 2}},
+            ],
+        },
+        {
+            "order": 4,
+            "question": "What travel pace best identifies you?",
+            "category": "Pace",
+            "multi_select": False,
+            "options": [
+                {"option": "Intense: I want to make the most of every second.", "scores": {"Adventurer": 10, "Cultural Explorer": 7, "Relaxed Traveler": -5, "Gourmet": 5, "Social & Nightlife": 8, "Romantic": 2}},
+                {"option": "Balanced: mixing activities with leisure.", "scores": {"Adventurer": 5, "Cultural Explorer": 8, "Relaxed Traveler": 6, "Gourmet": 8, "Social & Nightlife": 6, "Romantic": 8}},
+                {"option": "Relaxed: improvisation is my motto.", "scores": {"Adventurer": -2, "Cultural Explorer": 3, "Relaxed Traveler": 10, "Gourmet": 6, "Social & Nightlife": 4, "Romantic": 10}},
+            ],
+        },
+        {
+            "order": 5,
+            "question": "At night, you prefer to...",
+            "category": "Nightlife",
+            "multi_select": False,
+            "options": [
+                {"option": "Go out to bars and experience the local scene.", "scores": {"Adventurer": 4, "Cultural Explorer": 3, "Relaxed Traveler": -2, "Gourmet": 4, "Social & Nightlife": 10, "Romantic": 3}},
+                {"option": "Have a special, quiet dinner.", "scores": {"Adventurer": 2, "Cultural Explorer": 7, "Relaxed Traveler": 8, "Gourmet": 9, "Social & Nightlife": 3, "Romantic": 10}},
+                {"option": "Rest at the hotel for the next day.", "scores": {"Adventurer": 5, "Cultural Explorer": 5, "Relaxed Traveler": 10, "Gourmet": 3, "Social & Nightlife": -3, "Romantic": 6}},
+                {"option": "Attend a cultural show or event.", "scores": {"Adventurer": 1, "Cultural Explorer": 9, "Relaxed Traveler": 5, "Gourmet": 6, "Social & Nightlife": 4, "Romantic": 7}},
+            ],
+        },
+        {
+            "order": 6,
+            "question": "Select the activities that interest you the most (you can choose several):",
+            "category": "Direct Interests",
+            "multi_select": True,
+            "options": [
+                {"option": "Beaches", "scores": {"Relaxed Traveler": 5, "Romantic": 3}},
+                {"option": "City sightseeing", "scores": {"Cultural Explorer": 7, "Social & Nightlife": 3}},
+                {"option": "Outdoor adventures", "scores": {"Adventurer": 8, "Social & Nightlife": 2}},
+                {"option": "Festivals/events", "scores": {"Social & Nightlife": 8, "Cultural Explorer": 4}},
+                {"option": "Food exploration", "scores": {"Gourmet": 8, "Cultural Explorer": 3}},
+                {"option": "Nightlife", "scores": {"Social & Nightlife": 8, "Adventurer": 2}},
+                {"option": "Shopping", "scores": {"Social & Nightlife": 5, "Romantic": 4}},
+                {"option": "Spa wellness", "scores": {"Relaxed Traveler": 9, "Romantic": 4}},
+            ],
+        },
+    ],
+}
+
+
+# Mapping of renames from old Spanish names to new English names
+TRAVELER_TYPE_RENAMES = {
+    "Aventurero": "Adventurer",
+    "Cultural": "Cultural Explorer",
+    "Relax": "Relaxed Traveler",
+}
+
+# --- Database Models (assuming they are in the 'models' package) ---
 from database import SessionLocal
-from models import (
-    TravelerType,
-    Question,
-    QuestionOption,
-    QuestionOptionScore,
-)
+from models import Question, QuestionOption, QuestionOptionScore, TravelerType
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
+
+
+def _apply_traveler_type_renames(db: Session) -> None:
+    """Rename existing types according to TRAVELER_TYPE_RENAMES, merging data."""
+    from models.traveler_test.user_traveler_test import UserTravelerTest
+
+    for old_name, new_name in TRAVELER_TYPE_RENAMES.items():
+        if old_name == new_name:
+            continue
+
+        old_obj = db.query(TravelerType).filter(TravelerType.name == old_name, TravelerType.deleted_at.is_(None)).first()
+        if not old_obj:
+            continue
+
+        target_obj = db.query(TravelerType).filter(TravelerType.name == new_name, TravelerType.deleted_at.is_(None)).first()
+        if not target_obj:
+            old_obj.name = new_name
+            db.add(old_obj)
+            print(f"Renamed TravelerType '{old_name}' to '{new_name}'.")
+            continue
+
+        scores = db.query(QuestionOptionScore).filter(QuestionOptionScore.traveler_type_id == old_obj.id).all()
+        for sc in scores:
+            dup = db.query(QuestionOptionScore).filter(
+                QuestionOptionScore.question_option_id == sc.question_option_id,
+                QuestionOptionScore.traveler_type_id == target_obj.id,
+            ).first()
+            if dup:
+                db.delete(sc)
+            else:
+                sc.traveler_type_id = target_obj.id
+                db.add(sc)
+        
+        uts = db.query(UserTravelerTest).filter(UserTravelerTest.traveler_type_id == old_obj.id).all()
+        for ut in uts:
+            ut.traveler_type_id = target_obj.id
+            db.add(ut)
+
+        old_obj.deleted_at = datetime.now(timezone.utc)
+        db.add(old_obj)
+        print(f"Merged TravelerType '{old_name}' into '{new_name}' and soft-deleted the old one.")
 
 
 @contextmanager
 def session_scope() -> Iterator[Session]:
+    """Provide a transactional scope around a series of operations."""
     session = SessionLocal()
     try:
         yield session
@@ -52,7 +259,6 @@ def get_or_create_traveler_type(db: Session, name: str, **defaults) -> TravelerT
         and_(TravelerType.name == name, TravelerType.deleted_at.is_(None))
     ).first()
     if tt:
-        # Update defaults if provided
         updated = False
         for k, v in defaults.items():
             if getattr(tt, k, None) != v and v is not None:
@@ -67,45 +273,26 @@ def get_or_create_traveler_type(db: Session, name: str, **defaults) -> TravelerT
     return tt
 
 
-def next_question_order(db: Session) -> int:
-    max_order = (
-        db.query(func.max(Question.order))
-        .filter(and_(Question.order.is_not(None), Question.deleted_at.is_(None)))
-        .scalar()
-    )
-    return (max_order or 0) + 1
-
-
-def get_or_create_question(
-    db: Session, question_text: str, order: Optional[int] = None, **defaults
-) -> Question:
+def get_or_create_question(db: Session, question_text: str, **defaults) -> Question:
     q = db.query(Question).filter(
         and_(Question.question == question_text, Question.deleted_at.is_(None))
     ).first()
     if q:
-        # Update fields if changed
         updated = False
-        if order and q.order != order:
-            q.order = order
-            updated = True
         for k, v in defaults.items():
-            if getattr(q, k, None) != v:
+            if getattr(q, k, None) != v and v is not None:
                 setattr(q, k, v)
                 updated = True
         if updated:
             db.add(q)
         return q
-    if order is None:
-        order = next_question_order(db)
-    q = Question(question=question_text, order=order, **defaults)
+    q = Question(question=question_text, **defaults)
     db.add(q)
     db.flush()
     return q
 
 
-def get_or_create_option(
-    db: Session, question: Question, option_text: str, **defaults
-) -> QuestionOption:
+def get_or_create_option(db: Session, question: Question, option_text: str, **defaults) -> QuestionOption:
     opt = (
         db.query(QuestionOption)
         .filter(
@@ -132,9 +319,7 @@ def get_or_create_option(
     return opt
 
 
-def upsert_option_score(
-    db: Session, option: QuestionOption, traveler_type: TravelerType, score: int
-) -> QuestionOptionScore:
+def upsert_option_score(db: Session, option: QuestionOption, traveler_type: TravelerType, score: int) -> QuestionOptionScore:
     rec = (
         db.query(QuestionOptionScore)
         .filter(
@@ -157,98 +342,45 @@ def upsert_option_score(
     return rec
 
 
-def seed_minimal(db: Session) -> Dict[str, int]:
-    # Traveler Types
-    aventurero = get_or_create_traveler_type(
-        db,
-        "Aventurero",
-        description="Ama la aventura, la naturaleza y actividades al aire libre",
-        prompt_description="Prefiere itinerarios con trekking, deportes y destinos naturales.",
-        image_url="https://example.com/aventurero.jpg",
-    )
-    cultural = get_or_create_traveler_type(
-        db,
-        "Cultural",
-        description="Disfruta la historia, museos y experiencias locales",
-        prompt_description="Valora visitas guiadas, arte, gastronomía típica y arquitectura.",
-        image_url="https://example.com/cultural.jpg",
-    )
-    relax = get_or_create_traveler_type(
-        db,
-        "Relax",
-        description="Busca descanso, spa y playas tranquilas",
-        prompt_description="Prefiere itinerarios con ritmos suaves, playa y bienestar.",
-        image_url="https://example.com/relax.jpg",
-    )
-
-    # Questions + Options + Scores
-    q1 = get_or_create_question(
-        db,
-        "¿Qué preferís en tus vacaciones?",
-        category="preferencias",
-    )
-    q1_o1 = get_or_create_option(db, q1, "Montaña y trekking")
-    q1_o2 = get_or_create_option(db, q1, "Museos y tours")
-    q1_o3 = get_or_create_option(db, q1, "Playa y descanso")
-
-    upsert_option_score(db, q1_o1, aventurero, 8)
-    upsert_option_score(db, q1_o1, cultural, 2)
-    upsert_option_score(db, q1_o1, relax, -2)
-
-    upsert_option_score(db, q1_o2, aventurero, 0)
-    upsert_option_score(db, q1_o2, cultural, 8)
-    upsert_option_score(db, q1_o2, relax, 2)
-
-    upsert_option_score(db, q1_o3, aventurero, -1)
-    upsert_option_score(db, q1_o3, cultural, 2)
-    upsert_option_score(db, q1_o3, relax, 8)
-
-    # Another question
-    q2 = get_or_create_question(
-        db,
-        "¿Cómo te movés dentro del destino?",
-        category="transporte",
-    )
-    q2_o1 = get_or_create_option(db, q2, "Alquilo auto y exploro")
-    q2_o2 = get_or_create_option(db, q2, "Transporte público y caminatas")
-    q2_o3 = get_or_create_option(db, q2, "Traslados privados y taxi")
-
-    upsert_option_score(db, q2_o1, aventurero, 7)
-    upsert_option_score(db, q2_o1, cultural, 3)
-    upsert_option_score(db, q2_o1, relax, 0)
-
-    upsert_option_score(db, q2_o2, aventurero, 4)
-    upsert_option_score(db, q2_o2, cultural, 6)
-    upsert_option_score(db, q2_o2, relax, 2)
-
-    upsert_option_score(db, q2_o3, aventurero, 0)
-    upsert_option_score(db, q2_o3, cultural, 2)
-    upsert_option_score(db, q2_o3, relax, 7)
-
-    # A third question
-    q3 = get_or_create_question(
-        db,
-        "¿Qué ritmo de viaje te identifica?",
-        category="ritmo",
-    )
-    q3_o1 = get_or_create_option(db, q3, "Agenda intensa, muchas actividades")
-    q3_o2 = get_or_create_option(db, q3, "Equilibrado, tiempo libre y visitas")
-    q3_o3 = get_or_create_option(db, q3, "Tranquilo, sin madrugar")
-
-    upsert_option_score(db, q3_o1, aventurero, 8)
-    upsert_option_score(db, q3_o1, cultural, 4)
-    upsert_option_score(db, q3_o1, relax, -1)
-
-    upsert_option_score(db, q3_o2, aventurero, 4)
-    upsert_option_score(db, q3_o2, cultural, 6)
-    upsert_option_score(db, q3_o2, relax, 4)
-
-    upsert_option_score(db, q3_o3, aventurero, -1)
-    upsert_option_score(db, q3_o3, cultural, 2)
-    upsert_option_score(db, q3_o3, relax, 8)
-
+def seed_from_data(db: Session) -> Dict[str, int]:
+    """Seed DB from the TRAVELER_TEST_DATA structure (idempotent/upsert)."""
+    _apply_traveler_type_renames(db)
     db.flush()
 
+    traveler_type_objs: Dict[str, TravelerType] = {}
+    for tt_data in TRAVELER_TEST_DATA.get("traveler_types", []):
+        name = tt_data["name"].strip()
+        defaults = {k: v for k, v in tt_data.items() if k != "name"}
+        traveler_type_objs[name] = get_or_create_traveler_type(db, name, **defaults)
+
+    for q_data in TRAVELER_TEST_DATA.get("questions", []):
+        question_text = q_data["question"].strip()
+        q_defaults = {
+            "order": q_data.get("order"),
+            "category": q_data.get("category"),
+            "image_url": q_data.get("image_url"),
+            "multi_select": q_data.get("multi_select", False),
+        }
+        q_obj = get_or_create_question(db, question_text, **q_defaults)
+
+        for opt_data in q_data.get("options", []):
+            option_text = opt_data["option"].strip()
+            opt_defaults = {
+                "description": opt_data.get("description"),
+                "image_url": opt_data.get("image_url"),
+            }
+            opt_obj = get_or_create_option(db, q_obj, option_text, **opt_defaults)
+
+            for tt_name, score in opt_data.get("scores", {}).items():
+                tt_obj = traveler_type_objs.get(tt_name)
+                if not tt_obj:
+                    print(f"Warning: Traveler type '{tt_name}' not found for option '{option_text}'. Skipping score.")
+                    continue
+                if not -10 <= score <= 10:
+                    raise ValueError(f"Score out of range for '{option_text}' -> '{tt_name}': {score}")
+                upsert_option_score(db, opt_obj, tt_obj, int(score))
+
+    db.flush()
     counts = {
         "traveler_types": db.query(TravelerType).filter(TravelerType.deleted_at.is_(None)).count(),
         "questions": db.query(Question).filter(Question.deleted_at.is_(None)).count(),
@@ -258,14 +390,46 @@ def seed_minimal(db: Session) -> Dict[str, int]:
     return counts
 
 
+def prune_not_listed(db: Session) -> Dict[str, int]:
+    """Soft-delete records that are not listed in TRAVELER_TEST_DATA."""
+    now = datetime.now(timezone.utc)
+    pruned_counts = {"traveler_types": 0, "questions": 0}
+
+    keep_tt_names = {tt["name"].strip() for tt in TRAVELER_TEST_DATA.get("traveler_types", [])}
+    for tt in db.query(TravelerType).filter(TravelerType.deleted_at.is_(None), TravelerType.name.notin_(keep_tt_names)):
+        tt.deleted_at = now
+        db.add(tt)
+        pruned_counts["traveler_types"] += 1
+
+    keep_q_text = {q["question"].strip() for q in TRAVELER_TEST_DATA.get("questions", [])}
+    for q in db.query(Question).filter(Question.deleted_at.is_(None), Question.question.notin_(keep_q_text)):
+        q.deleted_at = now
+        db.add(q)
+        pruned_counts["questions"] += 1
+
+    db.flush()
+    return pruned_counts
+
+
 def main() -> None:
+    """Main execution function."""
+    parser = argparse.ArgumentParser(description="Seed or prune Traveler Test data.")
+    parser.add_argument("--prune", action="store_true", help="Soft-delete records not listed in TRAVELER_TEST_DATA before seeding.")
+    args = parser.parse_args()
+
     with session_scope() as db:
-        counts = seed_minimal(db)
-        print("Seed completed:")
-        print(f"  Traveler Types: {counts['traveler_types']}")
-        print(f"  Questions:      {counts['questions']}")
-        print(f"  Options:        {counts['options']}")
-        print(f"  Scores:         {counts['scores']}")
+        if args.prune:
+            pruned = prune_not_listed(db)
+            print("Pruning (soft-delete) complete:")
+            print(f"  - Pruned Traveler Types: {pruned['traveler_types']}")
+            print(f"  - Pruned Questions: {pruned['questions']}")
+
+        counts = seed_from_data(db)
+        print("\nTraveler Test seed completed from TRAVELER_TEST_DATA:")
+        print(f"  - Active Traveler Types: {counts['traveler_types']}")
+        print(f"  - Active Questions:      {counts['questions']}")
+        print(f"  - Active Options:        {counts['options']}")
+        print(f"  - Total Scores:          {counts['scores']}")
 
 
 if __name__ == "__main__":

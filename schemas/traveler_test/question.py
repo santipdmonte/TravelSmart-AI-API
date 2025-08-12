@@ -21,6 +21,7 @@ class QuestionBase(StrippedQuestionValidator):
     order: Optional[int] = Field(None, gt=0, description="Question order (must be positive if provided)")
     category: Optional[str] = Field(None, max_length=255, description="Question category")
     image_url: Optional[str] = Field(None, max_length=500, description="Optional image URL")
+    multi_select: Optional[bool] = Field(False, description="Whether multiple options can be selected")
 
 class QuestionCreate(QuestionBase):
     pass
@@ -29,6 +30,7 @@ class QuestionUpdate(StrippedQuestionValidator):
     order: Optional[int] = Field(None, gt=0, description="Question order (must be positive)")
     category: Optional[str] = Field(None, max_length=255, description="Question category")
     image_url: Optional[str] = Field(None, max_length=500, description="Optional image URL")
+    multi_select: Optional[bool] = Field(None, description="Whether multiple options can be selected")
 
 class QuestionResponse(QuestionBase):
     id: UUID
