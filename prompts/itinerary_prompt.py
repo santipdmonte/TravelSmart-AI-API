@@ -17,6 +17,27 @@ def _profile_block(state: ItineraryGenerate) -> str:
     )
 
 
+def _quality_rules_block() -> str:
+    """Bloque de reglas para mejorar granularidad y fidelidad del texto de actividades."""
+    return (
+        "\n\nREGLAS DE CALIDAD DE ACTIVIDADES (CRÍTICAS – DE CUMPLIMIENTO OBLIGATORIO):\n"
+        "Regla #1: Integridad Absoluta del Texto\n"
+        "- Cuando debas mantener una actividad 'sin cambios', DEBES replicar el texto original EXACTAMENTE, carácter por carácter.\n"
+        "- NUNCA añadas caracteres (incluidos '}' o '{').\n"
+        "- NUNCA alteres puntuación, mayúsculas, tildes o palabras.\n"
+        "  Ejemplo correcto: 'Visitar el Cristo Redentor por la mañana' -> 'Visitar el Cristo Redentor por la mañana'.\n"
+        "  Ejemplo incorrecto: 'Visitar el Cristo Redentor por la mañana},{'.\n"
+        "Regla #2: Granularidad Significativa de Actividades\n"
+        "- Cada actividad debe ser una acción/experiencia completa y autónoma (verbo + objeto + contexto/resultado).\n"
+        "- NO dividas una misma acción lógica en frases pequeñas o fragmentos sueltos.\n"
+        "  Ejemplo bueno: 'Explorar el barrio de Santa Teresa, famoso por sus calles empedradas y su arte local'.\n"
+        "  Ejemplo malo: 'explorar el barrio de Santa Teresa' + 'famoso por sus calles empedradas y el arte local'.\n"
+        "Regla #3: Texto Limpio y Humano\n"
+        "- Las descripciones deben ser texto plano (sin artefactos JSON ni símbolos fuera de lugar como '},{', '[', ']', '{', '}').\n"
+        "Regla #4: Por día, lista pocas actividades significativas (no micro-pasos), cada una con breve explicación y hora aproximada si aplica."
+    )
+
+
 def get_itinerary_prompt(state: ItineraryGenerate):
     PROMPT = f"""
 Eres el encargado en crear itinerarios para viajes.
@@ -30,11 +51,34 @@ El itinerario debe ser creado para el pasajero y debe ser personalizado.
 
 Se considera un nuevo destino cuando el pasajero debe dormir en otro lugar que no sea el destino actual.
 
-Por cada dia del viaje, plantea actividades detalladas con un poco de explicacion sobre la actividad en cuestion.
+Para cada día del viaje DEBES generar una lista de actividades en formato JSON estructurado.
+
+FORMATO OBLIGATORIO POR DÍA (dias_destino):
+- posicion_dia: número del día (entero)
+- actividades: lista de objetos JSON, cada uno con dos claves:
+    - nombre: título corto y descriptivo de la actividad
+    - descripcion: descripción completa, autónoma y significativa de la actividad
+
+EJEMPLO:
+{{
+    "posicion_dia": 1,
+    "actividades": [
+        {{
+            "nombre": "Llegada a Río e Ipanema",
+            "descripcion": "Llegar a Río de Janeiro y disfrutar de una tarde de relax en Ipanema, conocida por su hermosa playa y ambiente vibrante."
+        }},
+        {{
+            "nombre": "Explorar Posto 9",
+            "descripcion": "Se recomienda visitar el famoso Posto 9, donde podrás disfrutar del sol y la vista al mar."
+        }}
+    ]
+}}
+
+Entrega únicamente JSON válido por día (sin explicaciones fuera del JSON). No incluyas símbolos sueltos.
 
 """
 
-    return PROMPT + _profile_block(state)
+    return PROMPT + _quality_rules_block() + _profile_block(state)
 
 
 def get_itinerary_prompt2(state: ItineraryGenerate):
@@ -170,4 +214,4 @@ Duración: {state.duration_days}
 
 """
 
-    return PROMPT + _profile_block(state)
+    return PROMPT + _quality_rules_block() + _profile_block(state)

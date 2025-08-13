@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Literal
 from datetime import datetime, date
 from enum import Enum
 import uuid
@@ -153,3 +153,57 @@ class ItineraryList(BaseModel):
             datetime: lambda v: v.isoformat() if v else None,
             date: lambda v: v.isoformat() if v else None
         }
+
+
+# ===== Draft/Preview changes (propose-changes) schemas =====
+
+class ItineraryProposeChangesRequest(BaseModel):
+    """Request body for proposing changes to an itinerary via natural language instruction."""
+    instruction: str = Field(..., min_length=2, description="Natural language instruction describing desired changes")
+
+
+class ActivityDiff(BaseModel):
+    """Represents a per-activity diff entry for previewing changes."""
+    id: Optional[str] = Field(None, description="Existing activity identifier if available; null for new")
+    name: str = Field(..., description="Activity name or short description")
+    start_time: Optional[str] = Field(None, description="Optional start time if present in data")
+    status: Literal["added", "deleted", "modified", "unchanged"] = Field(..., description="Change status for this activity")
+
+
+class DayDiff(BaseModel):
+    day_number: int = Field(..., ge=1, description="1-based day number in the itinerary")
+    activities: List[ActivityDiff] = Field(default_factory=list, description="Activities diff for the day")
+
+
+class ItineraryDiffResponse(BaseModel):
+    """Response structure for the proposed changes diff preview."""
+    days: List[DayDiff] = Field(default_factory=list, description="Per-day diff summary")
+    summary: Optional[str] = Field(None, description="Optional high-level summary of proposed changes")
+    proposed_itinerary: Optional[Dict[str, Any]] = Field(None, description="Full proposed itinerary (ViajeState-like) for confirmation")
+    # Safety-rails: explicit fallback fields when AI output is invalid
+    error: Optional[str] = Field(None, description="Error message explaining why no proposal is available")
+    diff_results: Optional[List[DayDiff]] = Field(None, description="Alias field for days used in fallback responses")
+
+
+class ItineraryConfirmChangesRequest(BaseModel):
+    """Request to confirm and persist proposed itinerary changes."""
+    proposed_itinerary: Dict[str, Any] = Field(..., description="Full proposed itinerary to persist, matching ViajeState schema")
+    summary: Optional[str] = Field(None, description="Optional summary of what changed")
+
+
+# ===== Structured activities for LLM (preview v2) =====
+
+class ProposedActivity(BaseModel):
+    id: str = Field(..., description="Stable activity id; preserve for unchanged/modified; new id for added")
+    name: str = Field(..., description="Short activity title (nombre)")
+    description: str = Field(..., description="Full activity description (descripcion)")
+    start_time: Optional[str] = Field(None, description="Optional start time")
+
+
+class ProposedDay(BaseModel):
+    day_number: int = Field(..., ge=1)
+    activities: List[ProposedActivity] = Field(default_factory=list)
+
+
+class ProposedTrip(BaseModel):
+    days: List[ProposedDay] = Field(default_factory=list, description="Per-day structured activities with stable IDs")

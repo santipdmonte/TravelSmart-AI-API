@@ -13,8 +13,7 @@ class ActividadState(BaseModel):
 
 class DiaDestinoState(BaseModel):
     posicion_dia: int
-    #actividades: list[ActividadState]
-    actividades: str
+    actividades: list[ActividadState]
 
 class DestinoState(BaseModel):
     nombre_destino: str
