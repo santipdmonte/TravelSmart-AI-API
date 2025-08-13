@@ -30,6 +30,7 @@ from state import ViajeState
 from difflib import SequenceMatcher
 from langchain_core.messages import SystemMessage, HumanMessage
 from models.itinerary_change_log import ItineraryChangeLog
+import re
 
 class ItineraryService:
     """Service class for itinerary CRUD operations"""
@@ -289,7 +290,15 @@ class ItineraryService:
             "user_id": "user_123",
         }
 
-        itinerary_agent.invoke(initial_state, config=config)
+        print(f"✅ PASO 1: A punto de invocar el agente para el thread_id: {thread_id}")
+
+        try:
+            itinerary_agent.invoke(initial_state, config=config)
+        except Exception as e:
+            print(f"❌ ERROR: La invocación del agente falló con una excepción: {e}")
+            raise # Re-lanza la excepción para que FastAPI la maneje
+
+        print("✅ PASO 2: La invocación del agente finalizó con éxito.")
 
         raw_state = itinerary_agent.get_state(config)
         state_dict = state_to_dict(raw_state)
@@ -323,9 +332,12 @@ class ItineraryService:
         system_prompt = (
             "Eres un asistente experto en ajustar itinerarios.\n"
             "Recibirás una lista por día de actividades con IDs estables.\n"
-            "Debes devolver el mismo formato JSON exacto (days -> activities),\n"
-            "respetando los IDs existentes cuando la actividad se mantiene o se modifica.\n"
+            "Debes devolver el mismo formato JSON exacto (days -> activities), respetando los IDs existentes cuando la actividad se mantiene o se modifica.\n"
             "Para nuevas actividades, genera un UUID v4 como id.\n"
+            "REGLAS CRÍTICAS (DE CUMPLIMIENTO OBLIGATORIO):\n"
+            "1) Integridad Absoluta del Texto: Si una actividad no cambia, su descripción debe copiarse EXACTAMENTE igual: sin añadir ni quitar ningún carácter (prohibido '}', '{', '},{'), sin cambiar puntuación/acentos/mayúsculas.\n"
+            "2) Granularidad Significativa: Cada actividad debe ser una acción completa y autónoma; no dividas una misma acción en frases pequeñas.\n"
+            "3) Texto limpio: Usa solo texto humano en 'name' y 'description' (sin artefactos JSON).\n"
             "No agregues explicaciones. Solo JSON válido."
         )
 
@@ -346,8 +358,13 @@ class ItineraryService:
                 if d.day_number is None:
                     raise ValueError("Invalid ProposedTrip: day_number missing")
                 for a in d.activities:
-                    if not a.id or not a.description:
-                        raise ValueError("Invalid ProposedTrip: activity missing id/description")
+                    if not a.id or not a.name or not a.description:
+                        raise ValueError("Invalid ProposedTrip: activity missing id/name/description")
+                    # Sanitize any stray artifacts from LLM output defensively
+                    desc = a.description
+                    desc = desc.replace('},{', ', ').replace('} , {', ', ')
+                    desc = desc.replace('[', '').replace(']', '').replace('{', '').replace('}', '')
+                    a.description = re.sub(r"\s{2,}", " ", desc).strip()
         except Exception:
             # Safety rail fallback
             msg = "The AI assistant could not generate a valid suggestion at this time. Please try again later."
@@ -376,16 +393,38 @@ class ItineraryService:
         """Heuristic split of a day's 'actividades' string into individual items."""
         if not actividades_text:
             return []
-        # Try splitting on '.', ';', ' | ', ' - ', and commas as fallback
-        separators = ['.', ';', '|', ' - ', ',']
-        parts = [actividades_text]
+        # Sanitize common stray artifacts first (defense-in-depth)
+        cleaned = actividades_text.replace('},{', ', ').replace('} , {', ', ')
+        cleaned = cleaned.replace('[', '').replace(']', '').replace('{', '').replace('}', '')
+        cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+
+        # Try splitting on strong sentence delimiters first to reduce over-splitting
+        separators = ['. ', '; ', ' | ']
+        parts = [cleaned]
         for sep in separators:
             new_parts = []
             for p in parts:
                 new_parts.extend([x.strip() for x in p.split(sep)])
             parts = new_parts
-        # Remove empties and very short fillers
-        items = [p for p in (x.strip(" -•\u2022\t\n\r" ) for x in parts) if p]
+        # Optional light split on comma, but only when it seems to join independent clauses (avoid breaking noun phrases)
+        comma_split = []
+        for p in parts:
+            if len(p) > 80 and "," in p:
+                comma_split.extend([x.strip() for x in p.split(",")])
+            else:
+                comma_split.append(p)
+
+        # Remove empties and very short fillers; stitch lines that are too short into previous when likely fragments
+        candidates = [p.strip(" -•\u2022\t\n\r") for p in comma_split]
+        candidates = [p for p in candidates if p]
+
+        items: list[str] = []
+        for p in candidates:
+            if items and (len(p) < 25 or not re.search(r"[a-zA-ZáéíóúñÁÉÍÓÚ]", p)):
+                # Likely fragment: append to previous with comma
+                items[-1] = (items[-1].rstrip(" .;,|") + ", " + p.lstrip(", ")).strip()
+            else:
+                items.append(p)
         return items
 
     def _compute_diff(self, current: ViajeState, proposed: ViajeState) -> ItineraryDiffResponse:
@@ -451,20 +490,45 @@ class ItineraryService:
 
     def _build_structured_days_with_ids(self, current: ViajeState) -> dict:
         """Convert current ViajeState to per-day activities with stable IDs.
-        Since current model stores free text per day, we generate deterministic IDs
-        for each sentence/activity based on position.
+        Supports both legacy string 'actividades' and new structured list of objects.
+        Generates deterministic IDs for each activity based on day/index.
         """
         days: List[Dict[str, Any]] = []
         for destino in current.destinos:
             for dia in destino.dias_destino:
-                activities_texts = self._split_activities(dia.actividades)
                 activities: List[Dict[str, Any]] = []
-                for idx, text in enumerate(activities_texts):
-                    # Stable-ish id: day_number + index; in future, replace with DB ids
-                    activities.append({
-                        "id": f"day{dia.posicion_dia}-a{idx}",
-                        "description": text,
-                    })
+                if isinstance(dia.actividades, list):
+                    # New structured schema
+                    for idx, act in enumerate(dia.actividades):
+                        nombre = getattr(act, "nombre", None)
+                        if nombre is None and isinstance(act, dict):
+                            nombre = act.get("nombre")
+                        descripcion = getattr(act, "descripcion", None)
+                        if descripcion is None and isinstance(act, dict):
+                            descripcion = act.get("descripcion", "")
+                        if not nombre:
+                            # Derive a short title from description if missing
+                            base = (descripcion or "").strip()
+                            nombre = (base[:60] + ("…" if len(base) > 60 else "")) if base else "Actividad"
+                        activities.append({
+                            "id": f"day{dia.posicion_dia}-a{idx}",
+                            "name": nombre,
+                            "description": descripcion or "",
+                        })
+                else:
+                    # Legacy free-text schema
+                    activities_texts = self._split_activities(dia.actividades)
+                    for idx, text in enumerate(activities_texts):
+                        text = text.strip()
+                        # Derive a short title as first clause/sentence up to ~60 chars
+                        short = text.split(".")[0]
+                        if len(short) > 60:
+                            short = short[:60] + "…"
+                        activities.append({
+                            "id": f"day{dia.posicion_dia}-a{idx}",
+                            "name": short or "Actividad",
+                            "description": text,
+                        })
                 days.append({
                     "day_number": dia.posicion_dia,
                     "activities": activities,
@@ -497,23 +561,25 @@ class ItineraryService:
             # Unchanged/modified
             for aid, a in current_act.items():
                 if aid in proposed_act:
+                    new_name = proposed_act[aid].name
                     new_desc = proposed_act[aid].description
-                    status = "unchanged" if a.get("description") == new_desc else "modified"
+                    status = "unchanged" if (a.get("name") == new_name and a.get("description") == new_desc) else "modified"
                     if status == "unchanged":
                         unchanged += 1
                     else:
                         modified += 1
-                    entries.append(ActivityDiff(id=aid, name=new_desc, status=status))
+                    # Show combined title + description for diff name
+                    entries.append(ActivityDiff(id=aid, name=f"{new_name}: {new_desc}", status=status))
                 else:
                     # deleted
                     deleted += 1
-                    entries.append(ActivityDiff(id=aid, name=a.get("description", ""), status="deleted"))
+                    entries.append(ActivityDiff(id=aid, name=f"{a.get('name','')}: {a.get('description','')}", status="deleted"))
 
             # Added
             for aid, a in proposed_act.items():
                 if aid not in current_act:
                     added += 1
-                    entries.append(ActivityDiff(id=aid, name=a.description, status="added"))
+                    entries.append(ActivityDiff(id=aid, name=f"{a.name}: {a.description}", status="added"))
 
             day_diffs.append(DayDiff(day_number=day, activities=entries))
 
@@ -521,17 +587,20 @@ class ItineraryService:
         return ItineraryDiffResponse(days=day_diffs, summary=summary)
 
     def _apply_structured_days_to_viaje(self, current: ViajeState, proposed_trip: ProposedTrip) -> ViajeState:
-        """Produce a new ViajeState by replacing day texts from ProposedTrip descriptions.
-        Concatenates activity descriptions back into a single string per day to fit current schema.
-        """
-        # Build map day_number -> concatenated text from proposed activities
-        day_to_text: Dict[int, str] = {}
+        """Produce a new ViajeState by replacing per-day actividades with a structured list of objects."""
+        # Build map day_number -> list of structured activities
+        day_to_acts: Dict[int, List[Dict[str, Any]]] = {}
         for d in proposed_trip.days:
-            # Join with ". " to rebuild a single string; keep order
-            joined = ". ".join([a.description for a in d.activities if a.description])
-            day_to_text[d.day_number] = joined
+            acts: List[Dict[str, Any]] = []
+            for a in d.activities:
+                # Persist only nombre/descripcion in ViajeState; IDs are for diffing only
+                acts.append({
+                    "nombre": a.name,
+                    "descripcion": a.description,
+                })
+            day_to_acts[d.day_number] = acts
 
-        proposed_days_sorted = sorted(day_to_text.keys())
+        proposed_days_sorted = sorted(day_to_acts.keys())
 
         # Prepare a fast lookup of which global day_numbers currently exist
         existing_day_numbers: set[int] = set()
@@ -544,9 +613,28 @@ class ItineraryService:
         for destino in current.destinos:
             new_dias = []
             for dia in destino.dias_destino:
-                # Replace text when proposed has that day; otherwise keep
-                new_text = day_to_text.get(dia.posicion_dia, dia.actividades)
-                new_dias.append(type(dia)(posicion_dia=dia.posicion_dia, actividades=new_text))
+                # Replace actividades when proposed has that day; otherwise keep existing
+                new_struct = day_to_acts.get(dia.posicion_dia, None)
+                if new_struct is None:
+                    # If current is string schema (legacy), convert to structured list preserving content
+                    if isinstance(dia.actividades, str):
+                        texts = self._split_activities(dia.actividades)
+                        acts_struct: List[Dict[str, Any]] = []
+                        for idx, text in enumerate(texts):
+                            text = text.strip()
+                            short = text.split(".")[0]
+                            if len(short) > 60:
+                                short = short[:60] + "…"
+                            acts_struct.append({
+                                "nombre": short or "Actividad",
+                                "descripcion": text,
+                            })
+                        new_dias.append(type(dia)(posicion_dia=dia.posicion_dia, actividades=acts_struct))
+                    else:
+                        # Already structured; keep as-is
+                        new_dias.append(type(dia)(posicion_dia=dia.posicion_dia, actividades=dia.actividades))
+                else:
+                    new_dias.append(type(dia)(posicion_dia=dia.posicion_dia, actividades=new_struct))
 
             new_destinos.append(type(destino)(
                 nombre_destino=destino.nombre_destino,
@@ -564,13 +652,13 @@ class ItineraryService:
                 # Create DiaDestinoState entries for each missing day
                 DiaDestinoStateCls = type(target_dest.dias_destino[0]) if target_dest.dias_destino else None
                 for dnum in missing_days:
-                    text = day_to_text.get(dnum, "")
+                    acts = day_to_acts.get(dnum, [])
                     if DiaDestinoStateCls is None:
                         # Fallback: construct using schema class from typing (import at top)
                         from state import DiaDestinoState as DiaCls
-                        dia_obj = DiaCls(posicion_dia=dnum, actividades=text)
+                        dia_obj = DiaCls(posicion_dia=dnum, actividades=acts)
                     else:
-                        dia_obj = DiaDestinoStateCls(posicion_dia=dnum, actividades=text)
+                        dia_obj = DiaDestinoStateCls(posicion_dia=dnum, actividades=acts)
                     target_dest.dias_destino.append(dia_obj)
                 # Keep days sorted by posicion_dia
                 target_dest.dias_destino = sorted(target_dest.dias_destino, key=lambda d: d.posicion_dia)

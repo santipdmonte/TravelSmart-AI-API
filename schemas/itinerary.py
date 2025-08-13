@@ -195,7 +195,8 @@ class ItineraryConfirmChangesRequest(BaseModel):
 
 class ProposedActivity(BaseModel):
     id: str = Field(..., description="Stable activity id; preserve for unchanged/modified; new id for added")
-    description: str = Field(..., description="Activity description")
+    name: str = Field(..., description="Short activity title (nombre)")
+    description: str = Field(..., description="Full activity description (descripcion)")
     start_time: Optional[str] = Field(None, description="Optional start time")
 
 
