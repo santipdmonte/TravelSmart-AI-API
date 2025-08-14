@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func
 from fastapi import Depends
 from models.user import User, UserStatusEnum, UserRoleEnum
@@ -150,12 +150,17 @@ class UserService:
     
     def get_user_by_id(self, user_id: uuid.UUID) -> Optional[User]:
         """Get user by UUID (excluding soft deleted)"""
-        return self.db.query(User).filter(
-            and_(
-                User.id == user_id,
-                User.deleted_at.is_(None)
+        return (
+            self.db.query(User)
+            .options(joinedload(User.traveler_type))
+            .filter(
+                and_(
+                    User.id == user_id,
+                    User.deleted_at.is_(None)
+                )
             )
-        ).first()
+            .first()
+    )
     
     def get_user_by_email(self, email: str) -> Optional[User]:
         """Get user by email (excluding soft deleted)"""

@@ -15,6 +15,7 @@ import uuid
 from models.traveler_test.traveler_type import TravelerType
 from models.traveler_test.user_answers import UserAnswer
 from models.traveler_test.question_option_score import QuestionOptionScore
+from models.user import User
 
 class UserTravelerTestService:
     """Service class for UserTravelerTest CRUD operations and business logic"""
@@ -118,9 +119,15 @@ class UserTravelerTestService:
         traveler_type_id = self.get_user_traveler_type_by_scores(test_id)
         if traveler_type_id:
             test.traveler_type_id = traveler_type_id
+            # Also update the user's current traveler profile
+            user = self.db.query(User).filter(User.id == test.user_id).first()
+            if user:
+                user.traveler_type_id = traveler_type_id
         
         self.db.commit()
         self.db.refresh(test)
+        if traveler_type_id and 'user' in locals() and user:
+            self.db.refresh(user)
         return test
     
     def soft_delete_user_traveler_test(self, test_id: uuid.UUID) -> bool:

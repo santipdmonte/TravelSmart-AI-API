@@ -102,6 +102,7 @@ class UserResponse(UserBase):
     onboarding_completed: bool = Field(..., description="Whether onboarding is completed")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
+    traveler_type_id: Optional[uuid.UUID] = Field(None, description="Current traveler type profile for this user")
     
     class Config:
         from_attributes = True  # Enable ORM mode for SQLAlchemy compatibility (Pydantic V2)
@@ -143,6 +144,7 @@ class UserList(BaseModel):
     total_trips_created: int = Field(..., description="Total trips created")
     last_login_at: Optional[datetime] = Field(None, description="Last login timestamp")
     created_at: datetime = Field(..., description="Creation timestamp")
+    traveler_type_id: Optional[uuid.UUID] = Field(None, description="Current traveler type profile for this user")
     
     class Config:
         from_attributes = True

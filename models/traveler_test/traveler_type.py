@@ -20,6 +20,7 @@ class TravelerType(Base):
     # Relationships
     question_option_scores = relationship("QuestionOptionScore", back_populates="traveler_type", cascade="all, delete-orphan")
     user_tests = relationship("UserTravelerTest", back_populates="traveler_type")
+    users = relationship("User", back_populates="traveler_type")
 
     __table_args__ = (
         CheckConstraint("length(trim(name)) > 0", name="check_traveler_type_name_not_empty"),

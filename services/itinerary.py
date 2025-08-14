@@ -22,9 +22,7 @@ from utils.agent import is_valid_thread_state
 from utils.utils import state_to_dict, detect_hil_mode
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
-from models.traveler_test.user_traveler_test import UserTravelerTest
 from models.traveler_test.traveler_type import TravelerType
-from sqlalchemy import desc
 from langchain_openai import ChatOpenAI
 from state import ViajeState
 from difflib import SequenceMatcher
@@ -58,34 +56,43 @@ class ItineraryService:
         if user:
             user.total_trips_created += 1
             self.db.commit()
-        
+
+        # Attach traveler_profile detail for response convenience
+        try:
+            if user and getattr(user, "traveler_type_id", None):
+                # If user was eager-loaded, use that; else fetch
+                tt_obj = getattr(user, "traveler_type", None)
+                if not tt_obj:
+                    try:
+                        tt_obj = self.db.get(TravelerType, user.traveler_type_id)  # type: ignore[attr-defined]
+                    except Exception:
+                        tt_obj = self.db.query(TravelerType).get(user.traveler_type_id)  # type: ignore[attr-defined]
+                if tt_obj:
+                    # Non-persistent attribute for serialization layer
+                    setattr(db_itinerary, "traveler_profile", tt_obj)
+        except Exception:
+            pass
+
         return db_itinerary
 
     def generate_itinerary(self, itinerary_data: ItineraryGenerate, user: Optional[User] = None, session_id: Optional[uuid.UUID] = None) -> Itinerary:
         """Generate an itinerary with automatic user/session assignment"""
 
-        # 1) If authenticated, enrich generation input with latest traveler profile
-        if user and getattr(user, "id", None):
-            latest_completed = (
-                self.db.query(UserTravelerTest)
-                .filter(
-                    UserTravelerTest.user_id == user.id,
-                    UserTravelerTest.completed_at.isnot(None),
-                    UserTravelerTest.deleted_at.is_(None),
+        # 1) If authenticated, enrich generation input with user's current traveler_type
+        if user and getattr(user, "traveler_type_id", None):
+            # Prefer session.get in SQLAlchemy 2.x
+            try:
+                tt: Optional[TravelerType] = self.db.get(TravelerType, user.traveler_type_id)  # type: ignore[attr-defined]
+            except Exception:
+                # Fallback to legacy Query.get if needed
+                tt = self.db.query(TravelerType).get(user.traveler_type_id)  # type: ignore[attr-defined]
+            if tt:
+                itinerary_data = ItineraryGenerate(
+                    trip_name=itinerary_data.trip_name,
+                    duration_days=itinerary_data.duration_days,
+                    traveler_profile_name=tt.name,
+                    traveler_profile_desc=tt.prompt_description or tt.description or "",
                 )
-                .order_by(desc(UserTravelerTest.completed_at))
-                .first()
-            )
-            if latest_completed and latest_completed.traveler_type_id:
-                tt: Optional[TravelerType] = self.db.query(TravelerType).get(latest_completed.traveler_type_id)
-                if tt:
-                    # Build a new ItineraryGenerate including profile fields
-                    itinerary_data = ItineraryGenerate(
-                        trip_name=itinerary_data.trip_name,
-                        duration_days=itinerary_data.duration_days,
-                        traveler_profile_name=tt.name,
-                        traveler_profile_desc=tt.prompt_description or tt.description or "",
-                    )
 
         # 2) Generate state via graph with the enriched input
         state = itinerary_graph.invoke(itinerary_data)
@@ -95,12 +102,13 @@ class ItineraryService:
         try:
             if isinstance(details_itinerary, dict):
                 details_itinerary.setdefault("_meta", {})
-                details_itinerary["_meta"]["traveler_profile"] = {
+                profile_meta = {
                     "name": getattr(itinerary_data, "traveler_profile_name", None),
                     "desc": getattr(itinerary_data, "traveler_profile_desc", None),
-                    # include latest test id if available in scope
-                    **({"user_traveler_test_id": str(latest_completed.id)} if 'latest_completed' in locals() and latest_completed else {}),
                 }
+                if user and getattr(user, "traveler_type_id", None):
+                    profile_meta["traveler_type_id"] = str(user.traveler_type_id)
+                details_itinerary["_meta"]["traveler_profile"] = profile_meta
         except Exception:
             # non-fatal: keep generation even if audit metadata fails
             pass
