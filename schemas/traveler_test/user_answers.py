@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 from uuid import UUID
 
@@ -31,7 +31,13 @@ class UserAnswerDetailResponse(UserAnswerResponse):
 
 class UserAnswerBulkCreate(BaseModel):
     user_traveler_test_id: UUID = Field(..., description="ID of the user traveler test")
-    answers: List[UUID] = Field(..., min_items=1, description="List of question option IDs")
+    answers: Dict[UUID, List[UUID]] = Field(
+        ..., 
+        description=(
+            "Mapping of question_id -> list of selected question_option_ids. "
+            "Supports multi-select by allowing multiple option IDs per question."
+        )
+    )
 
 from schemas.traveler_test.user_traveler_test import UserTravelerTestResponse
 from schemas.traveler_test.question_option import QuestionOptionResponse

@@ -271,66 +271,96 @@ class UserAnswerService:
         }
     
     def bulk_create_answers(self, answers_data: UserAnswerBulkCreate) -> List[UserAnswer]:
-        """Create multiple user answers at once"""
-        created_answers = []
-        
+        """Replace all active answers for a test using a mapping of question_id -> list[question_option_id].
+
+        Behavior:
+        - Validates test exists and is active.
+        - Validates all provided options exist and belong to their respective questions.
+        - Soft-deletes existing active answers for the test to avoid duplicates on resubmission.
+        - Inserts one UserAnswer per option in the mapping, inside a single transaction.
+        """
+        created_answers: List[UserAnswer] = []
+
         try:
             # Validate that the user traveler test exists
             from models.traveler_test.user_traveler_test import UserTravelerTest
+            from models.traveler_test.question_option import QuestionOption
+            from models.traveler_test.question import Question
+
             user_test = self.db.query(UserTravelerTest).filter(
                 and_(
                     UserTravelerTest.id == answers_data.user_traveler_test_id,
                     UserTravelerTest.deleted_at.is_(None)
                 )
             ).first()
-            
             if not user_test:
                 raise ValueError(f"User traveler test with ID {answers_data.user_traveler_test_id} not found")
-            
-            # Validate that all question options exist
-            from models.traveler_test.question_option import QuestionOption
-            question_options = self.db.query(QuestionOption).filter(
-                and_(
-                    QuestionOption.id.in_(answers_data.answers),
-                    QuestionOption.deleted_at.is_(None)
-                )
-            ).all()
-            
-            if len(question_options) != len(answers_data.answers):
-                raise ValueError("Some question options not found")
-            
-            # Check for existing active answers
-            existing_answers = self.db.query(UserAnswer).filter(
+
+            # Flatten all submitted option IDs and collect question IDs
+            question_ids = list(answers_data.answers.keys())
+            option_ids: List[uuid.UUID] = []
+            for opt_list in answers_data.answers.values():
+                option_ids.extend(opt_list)
+
+            # If nothing to insert, still perform the soft-delete to clear previous answers
+            # and return empty list (treat as clearing answers)
+
+            # Validate that questions exist
+            if question_ids:
+                existing_questions = self.db.query(Question.id).filter(
+                    and_(
+                        Question.id.in_(question_ids),
+                        Question.deleted_at.is_(None)
+                    )
+                ).all()
+                if len(existing_questions) != len(question_ids):
+                    raise ValueError("Some questions provided were not found or are deleted")
+
+            # Validate that all question options exist and map to their question
+            option_to_question: Dict[uuid.UUID, uuid.UUID] = {}
+            if option_ids:
+                rows = self.db.query(QuestionOption.id, QuestionOption.question_id).filter(
+                    and_(
+                        QuestionOption.id.in_(option_ids),
+                        QuestionOption.deleted_at.is_(None)
+                    )
+                ).all()
+                if len(rows) != len(option_ids):
+                    raise ValueError("Some question options provided were not found or are deleted")
+                option_to_question = {row.id: row.question_id for row in rows}
+
+            # Validate option belongs to the specified question for all entries
+            for q_id, opt_list in answers_data.answers.items():
+                for opt_id in opt_list:
+                    owner_q = option_to_question.get(opt_id)
+                    if owner_q is None or owner_q != q_id:
+                        raise ValueError(f"Option {opt_id} does not belong to question {q_id}")
+
+            # Transaction: soft-delete existing answers, then insert the new set
+            # Soft-delete all active answers for this test
+            self.db.query(UserAnswer).filter(
                 and_(
                     UserAnswer.user_traveler_test_id == answers_data.user_traveler_test_id,
-                    UserAnswer.question_option_id.in_(answers_data.answers),
                     UserAnswer.deleted_at.is_(None)
                 )
-            ).all()
-            
-            if existing_answers:
-                existing_option_ids = [answer.question_option_id for answer in existing_answers]
-                raise ValueError(f"Active answers already exist for question options: {existing_option_ids}")
-            
-            # Create answers
-            for question_option_id in answers_data.answers:
-                answer_data = UserAnswerCreate(
-                    user_traveler_test_id=answers_data.user_traveler_test_id,
-                    question_option_id=question_option_id
-                )
-                
-                db_answer = UserAnswer(**answer_data.dict())
-                self.db.add(db_answer)
-                created_answers.append(db_answer)
-            
+            ).update({UserAnswer.deleted_at: datetime.utcnow()}, synchronize_session=False)
+
+            # Insert new answers
+            for q_id, opt_list in answers_data.answers.items():
+                for opt_id in opt_list:
+                    db_answer = UserAnswer(
+                        user_traveler_test_id=answers_data.user_traveler_test_id,
+                        question_option_id=opt_id
+                    )
+                    self.db.add(db_answer)
+                    created_answers.append(db_answer)
+
             self.db.commit()
-            
-            # Refresh all created answers
-            for answer in created_answers:
-                self.db.refresh(answer)
-            
+
+            for ans in created_answers:
+                self.db.refresh(ans)
             return created_answers
-            
+
         except Exception as e:
             self.db.rollback()
             raise ValueError(f"Failed to create answers: {str(e)}")
