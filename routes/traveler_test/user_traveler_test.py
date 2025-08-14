@@ -13,7 +13,7 @@ from schemas.traveler_test.user_traveler_test import (
     UserTravelerTestDetailResponse,
     UserTravelerTestStats
 )
-from schemas.traveler_test import TestSubmissionRequest, TestResultResponse
+from schemas.traveler_test import TestSubmissionRequest, TestResultResponse, TestHistoryDetailResponse
 from utils.jwt_utils import get_current_active_user, get_admin_user
 from models.user import User
 from datetime import datetime
@@ -331,6 +331,19 @@ async def get_test_scores(
     """Get scores for a specific test"""
     scores = test_service.get_test_scores(traveler_test_id)
     return scores
+
+
+@router.get("/{test_id}/history", response_model=TestHistoryDetailResponse)
+async def get_test_history_details(
+    test_id: uuid.UUID,
+    admin_user: User = Depends(get_admin_user),
+    test_service: UserTravelerTestService = Depends(get_user_traveler_test_service),
+):
+    """Admin-only: Get detailed answer history for a specific user test."""
+    details = test_service.get_test_history_details(test_id)
+    if not details:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Traveler test not found")
+    return details
 
 
 # ==================== SUBMISSION ROUTE ====================

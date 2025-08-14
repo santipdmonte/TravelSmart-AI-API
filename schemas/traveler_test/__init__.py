@@ -58,6 +58,25 @@ class TravelerProfileSummary(BaseModel):
     image_url: Optional[str] = None
     total_users: int = Field(default=0, description="Number of users with this profile")
 
+# ===== Admin history response schemas =====
+
+class UserAnswerHistoryResponse(BaseModel):
+    """Single answer entry with resolved texts for admin history view"""
+    question_id: UUID
+    question_text: str
+    selected_option_id: UUID
+    selected_option_text: str
+    created_at: Optional[str] = None
+
+class TestHistoryDetailResponse(BaseModel):
+    """Detailed test history including final traveler type and all answers"""
+    test_id: UUID
+    user_id: UUID
+    completed_at: Optional[str] = None
+    traveler_type_id: Optional[UUID] = None
+    traveler_type_name: Optional[str] = None
+    answers: List[UserAnswerHistoryResponse] = Field(default_factory=list)
+
 __all__ = [
     "QuestionBase", "QuestionCreate", "QuestionUpdate", 
     "QuestionResponse", "QuestionDetailResponse",
@@ -79,5 +98,6 @@ __all__ = [
     "UserTravelerTestComplete", "UserTravelerTestStats",
     
     "QuestionWithOptionsResponse", "TestQuestionnaireResponse",
-    "TestSubmissionRequest", "TestResultResponse", "TravelerProfileSummary"
+    "TestSubmissionRequest", "TestResultResponse", "TravelerProfileSummary",
+    "UserAnswerHistoryResponse", "TestHistoryDetailResponse",
 ] 

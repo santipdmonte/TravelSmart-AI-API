@@ -17,6 +17,7 @@ from models.traveler_test.user_answers import UserAnswer
 from models.traveler_test.question_option_score import QuestionOptionScore
 from models.user import User
 from services.traveler_test.user_answers import UserAnswerService
+from schemas.traveler_test import TestHistoryDetailResponse, UserAnswerHistoryResponse
 
 class UserTravelerTestService:
     """Service class for UserTravelerTest CRUD operations and business logic"""
@@ -205,12 +206,40 @@ class UserTravelerTestService:
         if not scores:
             return None
         
-        # Find the traveler type with the maximum score
+        # Find the traveler type IDs with the maximum score
         max_score = max(scores.values())
-        max_traveler_type_ids = [traveler_type_id for traveler_type_id, score in scores.items() if score == max_score]
-        
-        # If there's a tie, return the first one TODO: Handle ties
-        return max_traveler_type_ids[0] if max_traveler_type_ids else None
+        tied_ids = [tt_id for tt_id, sc in scores.items() if sc == max_score]
+
+        if not tied_ids:
+            return None
+
+        if len(tied_ids) == 1:
+            return tied_ids[0]
+
+        # Deterministic tiebreaker: choose the TravelerType with the oldest created_at
+        # Filter out soft-deleted types for safety
+        try:
+            q = (
+                self.db.query(TravelerType)
+                .filter(TravelerType.id.in_(tied_ids), TravelerType.deleted_at.is_(None))
+            )
+            candidates: list[TravelerType] = q.all()
+            if not candidates:
+                # Fallback: if none found (shouldn't happen), return a stable choice by UUID string
+                return sorted([str(x) for x in tied_ids])[0]
+
+            # Choose the one with the smallest created_at (oldest). If any created_at is None, treat as newest.
+            def sort_key(tt: TravelerType):
+                return (
+                    tt.created_at or datetime.max,
+                    str(tt.id),  # stable fallback for identical timestamps
+                )
+
+            winner = sorted(candidates, key=sort_key)[0]
+            return winner.id
+        except Exception:
+            # Robust fallback: stable deterministic selection by UUID string
+            return uuid.UUID(sorted([str(x) for x in tied_ids])[0])
     
     def get_test_stats(self, test_id: uuid.UUID) -> Optional[UserTravelerTestStats]:
         """Get statistics for a specific test"""
@@ -322,6 +351,66 @@ class UserTravelerTestService:
         except ImportError:
             # Fallback if Question model is not available
             return 10  # Default number of questions
+
+    # ==================== ADMIN HISTORY DETAILS ====================
+    def get_test_history_details(self, test_id: uuid.UUID) -> Optional[TestHistoryDetailResponse]:
+        """Return detailed test history with question/option texts for a given test (admin use)."""
+        test = self.get_user_traveler_test_by_id(test_id)
+        if not test:
+            return None
+
+        # Pull answers with joins to retrieve texts
+        from models.traveler_test.user_answers import UserAnswer
+        from models.traveler_test.question_option import QuestionOption
+        from models.traveler_test.question import Question
+
+        q = (
+            self.db.query(
+                UserAnswer.id,
+                UserAnswer.created_at,
+                Question.id.label("question_id"),
+                Question.question.label("question_text"),
+                QuestionOption.id.label("option_id"),
+                QuestionOption.option.label("option_text"),
+            )
+            .join(QuestionOption, UserAnswer.question_option_id == QuestionOption.id)
+            .join(Question, QuestionOption.question_id == Question.id)
+            .filter(
+                and_(
+                    UserAnswer.user_traveler_test_id == test_id,
+                    UserAnswer.deleted_at.is_(None),
+                    Question.deleted_at.is_(None),
+                    QuestionOption.deleted_at.is_(None),
+                )
+            )
+            .order_by(UserAnswer.created_at.asc())
+        )
+
+        entries: list[UserAnswerHistoryResponse] = []
+        for row in q.all():
+            entries.append(
+                UserAnswerHistoryResponse(
+                    question_id=row.question_id,
+                    question_text=row.question_text,
+                    selected_option_id=row.option_id,
+                    selected_option_text=row.option_text,
+                    created_at=row.created_at.isoformat() if row.created_at else None,
+                )
+            )
+
+        traveler_type_name: Optional[str] = None
+        if test.traveler_type_id:
+            tt = self.db.query(TravelerType).filter(TravelerType.id == test.traveler_type_id).first()
+            traveler_type_name = tt.name if tt else None
+
+        return TestHistoryDetailResponse(
+            test_id=test.id,
+            user_id=test.user_id,
+            completed_at=test.completed_at.isoformat() if test.completed_at else None,
+            traveler_type_id=test.traveler_type_id,
+            traveler_type_name=traveler_type_name,
+            answers=entries,
+        )
 
     # ==================== SUBMIT + COMPLETE ====================
     def submit_and_complete_test(self, test_id: uuid.UUID, answers: dict[uuid.UUID, uuid.UUID]):
