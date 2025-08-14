@@ -410,6 +410,98 @@ class UserAnswerService:
         
         return result
 
+    def bulk_create_user_answers(self, user_traveler_test_id: uuid.UUID, answers: Dict[uuid.UUID, uuid.UUID]) -> List[UserAnswer]:
+        """Atomically replace all answers for a given test with the provided mapping.
+
+        Args:
+            user_traveler_test_id: The test session ID.
+            answers: Dict mapping question_id -> question_option_id.
+
+        Returns:
+            List of created UserAnswer records.
+
+        Behavior:
+            - Validates test exists and is active (not soft-deleted).
+            - Validates each provided option exists and belongs to the given question.
+            - Soft-deletes any existing active answers for the test, then inserts the new set.
+            - Commits the transaction upon success, otherwise rolls back.
+        """
+        if not answers:
+            raise ValueError("Answers payload cannot be empty")
+
+        from models.traveler_test.user_traveler_test import UserTravelerTest
+        from models.traveler_test.question_option import QuestionOption
+        from models.traveler_test.question import Question
+
+        # Validate test exists
+        test = self.db.query(UserTravelerTest).filter(
+            and_(
+                UserTravelerTest.id == user_traveler_test_id,
+                UserTravelerTest.deleted_at.is_(None),
+            )
+        ).first()
+        if not test:
+            raise ValueError(f"User traveler test with ID {user_traveler_test_id} not found")
+
+        # Collect ids
+        question_ids = list(answers.keys())
+        option_ids = list(answers.values())
+
+        # Validate questions exist
+        existing_questions = self.db.query(Question.id).filter(
+            and_(
+                Question.id.in_(question_ids),
+                Question.deleted_at.is_(None),
+            )
+        ).all()
+        if len(existing_questions) != len(question_ids):
+            raise ValueError("Some questions in the submission were not found or have been deleted")
+
+        # Fetch options and map id -> question_id
+        options = self.db.query(QuestionOption.id, QuestionOption.question_id).filter(
+            and_(
+                QuestionOption.id.in_(option_ids),
+                QuestionOption.deleted_at.is_(None),
+            )
+        ).all()
+        if len(options) != len(option_ids):
+            raise ValueError("Some question options in the submission were not found or have been deleted")
+
+        option_to_question = {row.id: row.question_id for row in options}
+
+        # Validate each mapping option belongs to the provided question
+        for q_id, opt_id in answers.items():
+            owner_q = option_to_question.get(opt_id)
+            if owner_q is None or owner_q != q_id:
+                raise ValueError(f"Option {opt_id} does not belong to question {q_id}")
+
+        created: List[UserAnswer] = []
+        try:
+            # Soft-delete existing active answers for this test to avoid duplicates
+            self.db.query(UserAnswer).filter(
+                and_(
+                    UserAnswer.user_traveler_test_id == user_traveler_test_id,
+                    UserAnswer.deleted_at.is_(None),
+                )
+            ).update({UserAnswer.deleted_at: datetime.utcnow()}, synchronize_session=False)
+
+            # Insert new answers
+            for q_id, opt_id in answers.items():
+                ua = UserAnswer(
+                    user_traveler_test_id=user_traveler_test_id,
+                    question_option_id=opt_id,
+                )
+                self.db.add(ua)
+                created.append(ua)
+
+            self.db.commit()
+            for ua in created:
+                self.db.refresh(ua)
+            return created
+        except Exception as e:
+            self.db.rollback()
+            raise ValueError(f"Failed to persist answers: {str(e)}")
+
 
 def get_user_answer_service(db: Session = Depends(get_db)) -> UserAnswerService:
     """Dependency to get UserAnswerService instance"""

@@ -16,6 +16,7 @@ from models.traveler_test.traveler_type import TravelerType
 from models.traveler_test.user_answers import UserAnswer
 from models.traveler_test.question_option_score import QuestionOptionScore
 from models.user import User
+from services.traveler_test.user_answers import UserAnswerService
 
 class UserTravelerTestService:
     """Service class for UserTravelerTest CRUD operations and business logic"""
@@ -167,7 +168,10 @@ class UserTravelerTestService:
 
         # Get all answers for the test
         answers = self.db.query(UserAnswer).filter(
-            UserAnswer.user_traveler_test_id == user_traveler_test_id
+            and_(
+                UserAnswer.user_traveler_test_id == user_traveler_test_id,
+                UserAnswer.deleted_at.is_(None),
+            )
         ).all()
 
         if not answers:
@@ -318,6 +322,34 @@ class UserTravelerTestService:
         except ImportError:
             # Fallback if Question model is not available
             return 10  # Default number of questions
+
+    # ==================== SUBMIT + COMPLETE ====================
+    def submit_and_complete_test(self, test_id: uuid.UUID, answers: dict[uuid.UUID, uuid.UUID]):
+        """Persist the provided answers and complete the test in one transaction.
+
+        Returns a tuple: (completed_test: UserTravelerTest, traveler_type: Optional[TravelerType], scores: dict[str, float])
+        """
+        # 1) Persist answers (soft-delete previous ones, insert new)
+        answer_service = UserAnswerService(self.db)
+        answer_service.bulk_create_user_answers(test_id, answers)
+
+        # 2) Complete the test (sets completed_at, computes traveler_type_id, updates User)
+        completed_test = self.complete_user_traveler_test(test_id)
+        if not completed_test:
+            raise ValueError("Traveler test not found or could not be completed")
+
+        # 3) Compute final scores and resolve traveler type entity
+        raw_scores = self.get_test_scores(test_id) or {}
+        scores: dict[str, float] = {str(k): float(v) for k, v in raw_scores.items()}
+
+        tt: TravelerType | None = None
+        if completed_test.traveler_type_id:
+            try:
+                tt = self.db.get(TravelerType, completed_test.traveler_type_id)  # type: ignore[attr-defined]
+            except Exception:
+                tt = self.db.query(TravelerType).get(completed_test.traveler_type_id)  # type: ignore[attr-defined]
+
+        return completed_test, tt, scores
 
 
 def get_user_traveler_test_service(db: Session = Depends(get_db)) -> UserTravelerTestService:
