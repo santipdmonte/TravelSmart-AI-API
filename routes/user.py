@@ -6,9 +6,10 @@ from typing import List, Optional
 from dependencies import get_db
 from services.user import UserService, get_user_service
 from schemas.user import (
-    UserCreate, UserUpdate, UserLogin, UserResponse, UserPublicProfile, 
+    UserCreate, UserUpdate, UserLogin, UserResponse, UserPublicProfile,
     UserList, UserPasswordChange, UserPasswordReset, UserPasswordResetConfirm,
-    UserEmailVerification, UserStats, UserPreferences, EmailVerificationResponse, ResendVerificationResponse
+    UserEmailVerification, UserStats, UserPreferences, EmailVerificationResponse, ResendVerificationResponse,
+    UserWithTravelerProfile,
 )
 from utils.jwt_utils import (
     get_current_user, get_current_active_user, get_admin_user,
@@ -361,6 +362,33 @@ async def list_users(
     
     users = user_service.get_users(skip=skip, limit=limit, status=status_enum)
     return [UserList.model_validate(user) for user in users]
+
+
+@user_router.get("/with-profiles", response_model=List[UserWithTravelerProfile])
+async def list_users_with_profiles(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    status: Optional[str] = Query(None),
+    admin_user: User = Depends(get_admin_user),
+    user_service: UserService = Depends(get_user_service),
+):
+    """List users with their traveler profile eagerly loaded (admin only)."""
+    from models.user import UserStatusEnum
+
+    status_enum = None
+    if status:
+        try:
+            status_enum = UserStatusEnum(status)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid status value",
+            )
+
+    users = user_service.get_users_with_profiles(
+        skip=skip, limit=limit, status=status_enum
+    )
+    return [UserWithTravelerProfile.model_validate(u) for u in users]
 
 
 @user_router.get("/{user_id}", response_model=UserResponse)

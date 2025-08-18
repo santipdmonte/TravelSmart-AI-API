@@ -182,12 +182,32 @@ class UserService:
     
     def get_users(self, skip: int = 0, limit: int = 100, status: Optional[UserStatusEnum] = None) -> List[User]:
         """Get all users with optional filtering"""
-        query = self.db.query(User).filter(User.deleted_at.is_(None))
+        query = (
+            self.db.query(User)
+            .options(joinedload(User.traveler_type))
+            .filter(User.deleted_at.is_(None))
+        )
         
         if status:
             query = query.filter(User.status == status.value)
         
         return query.offset(skip).limit(limit).all()
+
+    def get_users_with_profiles(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        status: Optional[UserStatusEnum] = None,
+    ) -> List[User]:
+        """Return users eagerly loaded with traveler_type (admin listing)."""
+        query = (
+            self.db.query(User)
+            .options(joinedload(User.traveler_type))
+            .filter(User.deleted_at.is_(None))
+        )
+        if status:
+            query = query.filter(User.status == status.value)
+        return query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
     
     def search_users(self, query: str, skip: int = 0, limit: int = 100) -> List[User]:
         """Search users by email, username, or display name"""
