@@ -183,7 +183,10 @@ class UserTravelerTestService:
             QuestionOptionScore.traveler_type_id,
             QuestionOptionScore.score
         ).filter(
-            QuestionOptionScore.question_option_id.in_([answer.question_option_id for answer in answers])
+            and_(
+                QuestionOptionScore.question_option_id.in_([answer.question_option_id for answer in answers]),
+                QuestionOptionScore.deleted_at.is_(None),
+            )
         ).all()
 
         # Group scores by traveler type ID and sum them

@@ -22,7 +22,7 @@ class QuestionOptionService:
     
     def create_question_option(self, option_data: QuestionOptionCreate) -> QuestionOption:
         """Create a new question option"""
-        # Validate that the question exists
+    # Validate that the question exists and is active (not soft-deleted)
         from models.traveler_test.question import Question
         question = self.db.query(Question).filter(
             and_(
@@ -53,12 +53,22 @@ class QuestionOptionService:
     
     def get_question_options_by_question(self, question_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[QuestionOption]:
         """Get all options for a specific question"""
-        return self.db.query(QuestionOption).filter(
-            and_(
-                QuestionOption.question_id == question_id,
-                QuestionOption.deleted_at.is_(None)
+        # Ensure both the option and its parent question are not soft-deleted
+        from models.traveler_test.question import Question
+        return (
+            self.db.query(QuestionOption)
+            .join(Question, Question.id == QuestionOption.question_id)
+            .filter(
+                and_(
+                    QuestionOption.question_id == question_id,
+                    QuestionOption.deleted_at.is_(None),
+                    Question.deleted_at.is_(None),
+                )
             )
-        ).offset(skip).limit(limit).all()
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
     
     def get_all_question_options(self, skip: int = 0, limit: int = 100) -> List[QuestionOption]:
         """Get all question options"""
@@ -80,6 +90,17 @@ class QuestionOptionService:
         
         # Update fields
         update_data = option_data.dict(exclude_unset=True)
+        # If moving option to another question, validate new parent is active
+        if 'question_id' in update_data:
+            from models.traveler_test.question import Question
+            new_q = self.db.query(Question).filter(
+                and_(
+                    Question.id == update_data['question_id'],
+                    Question.deleted_at.is_(None)
+                )
+            ).first()
+            if not new_q:
+                raise ValueError(f"Target question with ID {update_data['question_id']} not found or is deleted")
         for field, value in update_data.items():
             setattr(option, field, value)
         
@@ -231,8 +252,16 @@ class QuestionOptionService:
     
     def get_options_with_scores(self, question_id: Optional[uuid.UUID] = None) -> List[Dict[str, Any]]:
         """Get options with their associated scores"""
-        query = self.db.query(QuestionOption).filter(
-            QuestionOption.deleted_at.is_(None)
+        from models.traveler_test.question import Question
+        query = (
+            self.db.query(QuestionOption)
+            .join(Question, Question.id == QuestionOption.question_id)
+            .filter(
+                and_(
+                    QuestionOption.deleted_at.is_(None),
+                    Question.deleted_at.is_(None),
+                )
+            )
         )
         
         if question_id:

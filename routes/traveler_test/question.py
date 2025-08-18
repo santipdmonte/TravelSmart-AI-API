@@ -13,6 +13,7 @@ from schemas.traveler_test.question import (
 )
 from utils.jwt_utils import get_current_active_user, get_admin_user
 from models.user import User
+from schemas.traveler_test import TestQuestionnaireResponse, QuestionWithOptionsResponse, QuestionOptionResponse
 
 router = APIRouter(prefix="/questions", tags=["Questions"])
 
@@ -271,3 +272,35 @@ async def get_public_questions_by_category(
     """Get questions by category (public endpoint)"""
     questions = question_service.get_questions_by_category(category, skip=skip, limit=limit)
     return [QuestionResponse.model_validate(question) for question in questions]
+
+
+@router.get("/public/questionnaire", response_model=TestQuestionnaireResponse)
+async def get_public_questionnaire(
+    question_service: QuestionService = Depends(get_question_service),
+):
+    """Return all active questions with their active options for the public test UI.
+
+    This endpoint guarantees that options whose parent question is deleted will not appear.
+    """
+    # Fetch active questions ordered
+    questions = question_service.get_active_questions(skip=0, limit=1000)
+
+    # Fetch options per question with parent-check via service in question_option
+    from services.traveler_test.question_option import QuestionOptionService
+    option_service = QuestionOptionService(question_service.db)
+
+    q_with_opts: list[QuestionWithOptionsResponse] = []
+    for q in questions:
+        opts = option_service.get_question_options_by_question(q.id, skip=0, limit=1000)
+        q_with_opts.append(
+            QuestionWithOptionsResponse(
+                **QuestionResponse.model_validate(q).model_dump(),
+                question_options=[QuestionOptionResponse.model_validate(o) for o in opts],
+            )
+        )
+
+    return TestQuestionnaireResponse(
+        questions=q_with_opts,
+        total_questions=len(q_with_opts),
+        estimated_time_minutes=5,
+    )

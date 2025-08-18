@@ -35,8 +35,9 @@ class UserAnswerService:
         if not user_test:
             raise ValueError(f"User traveler test with ID {answer_data.user_traveler_test_id} not found")
         
-        # Validate that the question option exists
+        # Validate that the question option exists and its parent question is active
         from models.traveler_test.question_option import QuestionOption
+        from models.traveler_test.question import Question
         question_option = self.db.query(QuestionOption).filter(
             and_(
                 QuestionOption.id == answer_data.question_option_id,
@@ -46,6 +47,15 @@ class UserAnswerService:
         
         if not question_option:
             raise ValueError(f"Question option with ID {answer_data.question_option_id} not found")
+        # Also ensure the parent question is not soft-deleted
+        parent_q = self.db.query(Question).filter(
+            and_(
+                Question.id == question_option.question_id,
+                Question.deleted_at.is_(None)
+            )
+        ).first()
+        if not parent_q:
+            raise ValueError("The parent question for the selected option is deleted or not found")
         
         # Check if an active answer already exists for this combination
         existing_answer = self.get_answer_by_test_and_option(
@@ -189,8 +199,9 @@ class UserAnswerService:
         if not existing_answer:
             raise ValueError(f"No active answer found for test {user_traveler_test_id} and question option {question_option_id}")
         
-        # Validate that the new question option exists
+        # Validate that the new question option exists and its parent question is active
         from models.traveler_test.question_option import QuestionOption
+        from models.traveler_test.question import Question
         new_question_option = self.db.query(QuestionOption).filter(
             and_(
                 QuestionOption.id == new_question_option_id,
@@ -200,6 +211,14 @@ class UserAnswerService:
         
         if not new_question_option:
             raise ValueError(f"Question option with ID {new_question_option_id} not found")
+        parent_q = self.db.query(Question).filter(
+            and_(
+                Question.id == new_question_option.question_id,
+                Question.deleted_at.is_(None)
+            )
+        ).first()
+        if not parent_q:
+            raise ValueError("The parent question for the selected option is deleted or not found")
         
         # Check if the new answer already exists
         existing_new_answer = self.get_answer_by_test_and_option(user_traveler_test_id, new_question_option_id)
@@ -305,7 +324,7 @@ class UserAnswerService:
             # If nothing to insert, still perform the soft-delete to clear previous answers
             # and return empty list (treat as clearing answers)
 
-            # Validate that questions exist
+            # Validate that questions exist (active only)
             if question_ids:
                 existing_questions = self.db.query(Question.id).filter(
                     and_(
@@ -316,7 +335,7 @@ class UserAnswerService:
                 if len(existing_questions) != len(question_ids):
                     raise ValueError("Some questions provided were not found or are deleted")
 
-            # Validate that all question options exist and map to their question
+            # Validate that all question options exist (active) and map to their question
             option_to_question: Dict[uuid.UUID, uuid.UUID] = {}
             if option_ids:
                 rows = self.db.query(QuestionOption.id, QuestionOption.question_id).filter(
@@ -328,6 +347,17 @@ class UserAnswerService:
                 if len(rows) != len(option_ids):
                     raise ValueError("Some question options provided were not found or are deleted")
                 option_to_question = {row.id: row.question_id for row in rows}
+
+                # Ensure parent questions are also active for all provided options
+                parent_q_ids = list({row.question_id for row in rows})
+                active_parents = self.db.query(Question.id).filter(
+                    and_(
+                        Question.id.in_(parent_q_ids),
+                        Question.deleted_at.is_(None)
+                    )
+                ).all()
+                if len(active_parents) != len(parent_q_ids):
+                    raise ValueError("Some options refer to questions that are deleted")
 
             # Validate option belongs to the specified question for all entries
             for q_id, opt_list in answers_data.answers.items():

@@ -308,13 +308,18 @@ async def change_user_answer(
 
 # ==================== BUSINESS LOGIC ROUTES ====================
 
-@router.post("/bulk", response_model=List[UserAnswerResponse], status_code=status.HTTP_201_CREATED)
+@router.post("/bulk", status_code=status.HTTP_201_CREATED)
 async def bulk_create_user_answers(
     answers_data: UserAnswerBulkCreate,
     current_user: User = Depends(get_current_active_user),
     answer_service: UserAnswerService = Depends(get_user_answer_service)
 ):
-    """Create multiple user answers at once"""
+    """Create multiple user answers at once and return the final test result.
+
+    This endpoint replaces any existing active answers for the given test, completes the test,
+    and returns a summary including the resolved traveler type and scores. It ensures that all
+    referenced questions/options are active (not soft-deleted).
+    """
     try:
         # Validate that the user owns the test
         from services.traveler_test.user_traveler_test import UserTravelerTestService
@@ -326,9 +331,33 @@ async def bulk_create_user_answers(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied to this test"
             )
-        
-        created_answers = answer_service.bulk_create_answers(answers_data)
-        return [UserAnswerResponse.model_validate(answer) for answer in created_answers]
+
+        # Persist all answers (with validation and soft-delete of existing)
+        answer_service.bulk_create_answers(answers_data)
+
+        # Complete the test and compute result
+        completed_test = test_service.complete_user_traveler_test(answers_data.user_traveler_test_id)
+        if not completed_test:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Traveler test not found")
+
+        raw_scores = test_service.get_test_scores(answers_data.user_traveler_test_id) or {}
+        scores = {str(k): float(v) for k, v in raw_scores.items()}
+
+        from schemas.traveler_test.user_traveler_test import UserTravelerTestResponse
+        from schemas.traveler_test.traveler_type import TravelerTypeResponse
+        from models.traveler_test.traveler_type import TravelerType
+
+        traveler_type = None
+        if completed_test.traveler_type_id:
+            traveler = answer_service.db.query(TravelerType).filter(TravelerType.id == completed_test.traveler_type_id).first()
+            traveler_type = TravelerTypeResponse.model_validate(traveler) if traveler else None
+
+        return {
+            "user_traveler_test": UserTravelerTestResponse.model_validate(completed_test),
+            "traveler_type": traveler_type,
+            "scores": scores,
+            "completion_time_minutes": getattr(completed_test, "duration_minutes", None),
+        }
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
