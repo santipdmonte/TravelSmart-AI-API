@@ -17,7 +17,7 @@ from models.traveler_test.user_answers import UserAnswer
 from models.traveler_test.question_option_score import QuestionOptionScore
 from models.user import User
 from services.traveler_test.user_answers import UserAnswerService
-from schemas.traveler_test import TestHistoryDetailResponse, UserAnswerHistoryResponse
+ 
 
 class UserTravelerTestService:
     """Service class for UserTravelerTest CRUD operations and business logic"""
@@ -355,65 +355,7 @@ class UserTravelerTestService:
             # Fallback if Question model is not available
             return 10  # Default number of questions
 
-    # ==================== ADMIN HISTORY DETAILS ====================
-    def get_test_history_details(self, test_id: uuid.UUID) -> Optional[TestHistoryDetailResponse]:
-        """Return detailed test history with question/option texts for a given test (admin use)."""
-        test = self.get_user_traveler_test_by_id(test_id)
-        if not test:
-            return None
-
-        # Pull answers with joins to retrieve texts
-        from models.traveler_test.user_answers import UserAnswer
-        from models.traveler_test.question_option import QuestionOption
-        from models.traveler_test.question import Question
-
-        q = (
-            self.db.query(
-                UserAnswer.id,
-                UserAnswer.created_at,
-                Question.id.label("question_id"),
-                Question.question.label("question_text"),
-                QuestionOption.id.label("option_id"),
-                QuestionOption.option.label("option_text"),
-            )
-            .join(QuestionOption, UserAnswer.question_option_id == QuestionOption.id)
-            .join(Question, QuestionOption.question_id == Question.id)
-            .filter(
-                and_(
-                    UserAnswer.user_traveler_test_id == test_id,
-                    UserAnswer.deleted_at.is_(None),
-                    Question.deleted_at.is_(None),
-                    QuestionOption.deleted_at.is_(None),
-                )
-            )
-            .order_by(UserAnswer.created_at.asc())
-        )
-
-        entries: list[UserAnswerHistoryResponse] = []
-        for row in q.all():
-            entries.append(
-                UserAnswerHistoryResponse(
-                    question_id=row.question_id,
-                    question_text=row.question_text,
-                    selected_option_id=row.option_id,
-                    selected_option_text=row.option_text,
-                    created_at=row.created_at.isoformat() if row.created_at else None,
-                )
-            )
-
-        traveler_type_name: Optional[str] = None
-        if test.traveler_type_id:
-            tt = self.db.query(TravelerType).filter(TravelerType.id == test.traveler_type_id).first()
-            traveler_type_name = tt.name if tt else None
-
-        return TestHistoryDetailResponse(
-            test_id=test.id,
-            user_id=test.user_id,
-            completed_at=test.completed_at.isoformat() if test.completed_at else None,
-            traveler_type_id=test.traveler_type_id,
-            traveler_type_name=traveler_type_name,
-            answers=entries,
-        )
+    # Admin history details feature removed
 
     # ==================== SUBMIT + COMPLETE ====================
     def submit_and_complete_test(self, test_id: uuid.UUID, answers: dict[uuid.UUID, uuid.UUID]):
