@@ -46,7 +46,7 @@ class TestSubmissionRequest(BaseModel):
 class TestResultResponse(BaseModel):
     """Complete test result with traveler type and scores"""
     user_traveler_test: UserTravelerTestResponse
-    traveler_type: TravelerTypeResponse
+    traveler_type: Optional[TravelerTypeResponse]
     scores: Dict[str, float] = Field(..., description="Scores for each traveler type")
     completion_time_minutes: Optional[float] = None
 
@@ -79,5 +79,5 @@ __all__ = [
     "UserTravelerTestComplete", "UserTravelerTestStats",
     
     "QuestionWithOptionsResponse", "TestQuestionnaireResponse",
-    "TestSubmissionRequest", "TestResultResponse", "TravelerProfileSummary"
+    "TestSubmissionRequest", "TestResultResponse", "TravelerProfileSummary",
 ] 

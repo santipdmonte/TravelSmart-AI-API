@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime, date
 import uuid
 from models.user import UserStatusEnum, UserRoleEnum, CurrencyEnum, TravelStyleEnum
+from schemas.traveler_test.traveler_type import TravelerTypeResponse
 
 
 class UserBase(BaseModel):
@@ -102,6 +103,7 @@ class UserResponse(UserBase):
     onboarding_completed: bool = Field(..., description="Whether onboarding is completed")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
+    traveler_type_id: Optional[uuid.UUID] = Field(None, description="Current traveler type profile for this user")
     
     class Config:
         from_attributes = True  # Enable ORM mode for SQLAlchemy compatibility (Pydantic V2)
@@ -143,6 +145,7 @@ class UserList(BaseModel):
     total_trips_created: int = Field(..., description="Total trips created")
     last_login_at: Optional[datetime] = Field(None, description="Last login timestamp")
     created_at: datetime = Field(..., description="Creation timestamp")
+    traveler_type_id: Optional[uuid.UUID] = Field(None, description="Current traveler type profile for this user")
     
     class Config:
         from_attributes = True
@@ -234,3 +237,22 @@ class EmailVerificationResponse(BaseModel):
 class ResendVerificationResponse(BaseModel):
     """Response model for resend verification"""
     message: str
+
+
+class UserWithTravelerProfile(BaseModel):
+    """Minimal user info with nested traveler type for admin listings"""
+    id: uuid.UUID
+    email: EmailStr
+    username: Optional[str] = None
+    display_name: Optional[str] = None
+    traveler_type: Optional[TravelerTypeResponse] = None
+    status: UserStatusEnum
+    role: UserRoleEnum
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+        use_enum_values = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None
+        }

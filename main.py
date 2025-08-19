@@ -57,6 +57,7 @@ app.include_router(itinerary_router)  # Itinerary routes
 app.include_router(transportation_router)  # Transport routes
 app.include_router(traveler_type_router)  # Traveler type routes (/traveler-types)
 app.include_router(user_traveler_test_router)  # User traveler test routes (/traveler-tests)
+app.include_router(user_traveler_test_router, prefix="/api")  # Also expose under /api for FE compatibility
 app.include_router(question_router)  # Question routes (/questions)
 app.include_router(question_option_router)  # Question option routes (/question-options)
 app.include_router(question_option_score_router)  # Question option score routes (/question-option-scores)

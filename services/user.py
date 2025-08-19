@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func
 from fastapi import Depends
 from models.user import User, UserStatusEnum, UserRoleEnum
@@ -150,12 +150,17 @@ class UserService:
     
     def get_user_by_id(self, user_id: uuid.UUID) -> Optional[User]:
         """Get user by UUID (excluding soft deleted)"""
-        return self.db.query(User).filter(
-            and_(
-                User.id == user_id,
-                User.deleted_at.is_(None)
+        return (
+            self.db.query(User)
+            .options(joinedload(User.traveler_type))
+            .filter(
+                and_(
+                    User.id == user_id,
+                    User.deleted_at.is_(None)
+                )
             )
-        ).first()
+            .first()
+    )
     
     def get_user_by_email(self, email: str) -> Optional[User]:
         """Get user by email (excluding soft deleted)"""
@@ -177,12 +182,32 @@ class UserService:
     
     def get_users(self, skip: int = 0, limit: int = 100, status: Optional[UserStatusEnum] = None) -> List[User]:
         """Get all users with optional filtering"""
-        query = self.db.query(User).filter(User.deleted_at.is_(None))
+        query = (
+            self.db.query(User)
+            .options(joinedload(User.traveler_type))
+            .filter(User.deleted_at.is_(None))
+        )
         
         if status:
             query = query.filter(User.status == status.value)
         
         return query.offset(skip).limit(limit).all()
+
+    def get_users_with_profiles(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        status: Optional[UserStatusEnum] = None,
+    ) -> List[User]:
+        """Return users eagerly loaded with traveler_type (admin listing)."""
+        query = (
+            self.db.query(User)
+            .options(joinedload(User.traveler_type))
+            .filter(User.deleted_at.is_(None))
+        )
+        if status:
+            query = query.filter(User.status == status.value)
+        return query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
     
     def search_users(self, query: str, skip: int = 0, limit: int = 100) -> List[User]:
         """Search users by email, username, or display name"""

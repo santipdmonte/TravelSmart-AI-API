@@ -15,6 +15,9 @@ import uuid
 from models.traveler_test.traveler_type import TravelerType
 from models.traveler_test.user_answers import UserAnswer
 from models.traveler_test.question_option_score import QuestionOptionScore
+from models.user import User
+from services.traveler_test.user_answers import UserAnswerService
+ 
 
 class UserTravelerTestService:
     """Service class for UserTravelerTest CRUD operations and business logic"""
@@ -118,9 +121,15 @@ class UserTravelerTestService:
         traveler_type_id = self.get_user_traveler_type_by_scores(test_id)
         if traveler_type_id:
             test.traveler_type_id = traveler_type_id
+            # Also update the user's current traveler profile
+            user = self.db.query(User).filter(User.id == test.user_id).first()
+            if user:
+                user.traveler_type_id = traveler_type_id
         
         self.db.commit()
         self.db.refresh(test)
+        if traveler_type_id and 'user' in locals() and user:
+            self.db.refresh(user)
         return test
     
     def soft_delete_user_traveler_test(self, test_id: uuid.UUID) -> bool:
@@ -160,7 +169,10 @@ class UserTravelerTestService:
 
         # Get all answers for the test
         answers = self.db.query(UserAnswer).filter(
-            UserAnswer.user_traveler_test_id == user_traveler_test_id
+            and_(
+                UserAnswer.user_traveler_test_id == user_traveler_test_id,
+                UserAnswer.deleted_at.is_(None),
+            )
         ).all()
 
         if not answers:
@@ -171,7 +183,10 @@ class UserTravelerTestService:
             QuestionOptionScore.traveler_type_id,
             QuestionOptionScore.score
         ).filter(
-            QuestionOptionScore.question_option_id.in_([answer.question_option_id for answer in answers])
+            and_(
+                QuestionOptionScore.question_option_id.in_([answer.question_option_id for answer in answers]),
+                QuestionOptionScore.deleted_at.is_(None),
+            )
         ).all()
 
         # Group scores by traveler type ID and sum them
@@ -194,12 +209,40 @@ class UserTravelerTestService:
         if not scores:
             return None
         
-        # Find the traveler type with the maximum score
+        # Find the traveler type IDs with the maximum score
         max_score = max(scores.values())
-        max_traveler_type_ids = [traveler_type_id for traveler_type_id, score in scores.items() if score == max_score]
-        
-        # If there's a tie, return the first one TODO: Handle ties
-        return max_traveler_type_ids[0] if max_traveler_type_ids else None
+        tied_ids = [tt_id for tt_id, sc in scores.items() if sc == max_score]
+
+        if not tied_ids:
+            return None
+
+        if len(tied_ids) == 1:
+            return tied_ids[0]
+
+        # Deterministic tiebreaker: choose the TravelerType with the oldest created_at
+        # Filter out soft-deleted types for safety
+        try:
+            q = (
+                self.db.query(TravelerType)
+                .filter(TravelerType.id.in_(tied_ids), TravelerType.deleted_at.is_(None))
+            )
+            candidates: list[TravelerType] = q.all()
+            if not candidates:
+                # Fallback: if none found (shouldn't happen), return a stable choice by UUID string
+                return sorted([str(x) for x in tied_ids])[0]
+
+            # Choose the one with the smallest created_at (oldest). If any created_at is None, treat as newest.
+            def sort_key(tt: TravelerType):
+                return (
+                    tt.created_at or datetime.max,
+                    str(tt.id),  # stable fallback for identical timestamps
+                )
+
+            winner = sorted(candidates, key=sort_key)[0]
+            return winner.id
+        except Exception:
+            # Robust fallback: stable deterministic selection by UUID string
+            return uuid.UUID(sorted([str(x) for x in tied_ids])[0])
     
     def get_test_stats(self, test_id: uuid.UUID) -> Optional[UserTravelerTestStats]:
         """Get statistics for a specific test"""
@@ -311,6 +354,36 @@ class UserTravelerTestService:
         except ImportError:
             # Fallback if Question model is not available
             return 10  # Default number of questions
+
+    # Admin history details feature removed
+
+    # ==================== SUBMIT + COMPLETE ====================
+    def submit_and_complete_test(self, test_id: uuid.UUID, answers: dict[uuid.UUID, uuid.UUID]):
+        """Persist the provided answers and complete the test in one transaction.
+
+        Returns a tuple: (completed_test: UserTravelerTest, traveler_type: Optional[TravelerType], scores: dict[str, float])
+        """
+        # 1) Persist answers (soft-delete previous ones, insert new)
+        answer_service = UserAnswerService(self.db)
+        answer_service.bulk_create_user_answers(test_id, answers)
+
+        # 2) Complete the test (sets completed_at, computes traveler_type_id, updates User)
+        completed_test = self.complete_user_traveler_test(test_id)
+        if not completed_test:
+            raise ValueError("Traveler test not found or could not be completed")
+
+        # 3) Compute final scores and resolve traveler type entity
+        raw_scores = self.get_test_scores(test_id) or {}
+        scores: dict[str, float] = {str(k): float(v) for k, v in raw_scores.items()}
+
+        tt: TravelerType | None = None
+        if completed_test.traveler_type_id:
+            try:
+                tt = self.db.get(TravelerType, completed_test.traveler_type_id)  # type: ignore[attr-defined]
+            except Exception:
+                tt = self.db.query(TravelerType).get(completed_test.traveler_type_id)  # type: ignore[attr-defined]
+
+        return completed_test, tt, scores
 
 
 def get_user_traveler_test_service(db: Session = Depends(get_db)) -> UserTravelerTestService:

@@ -5,6 +5,7 @@ import uuid
 
 from dependencies import get_db
 from services.traveler_test.user_traveler_test import UserTravelerTestService, get_user_traveler_test_service
+from services.traveler_test.user_answers import UserAnswerService, get_user_answer_service
 from schemas.traveler_test.user_traveler_test import (
     UserTravelerTestCreate, 
     UserTravelerTestUpdate, 
@@ -12,6 +13,7 @@ from schemas.traveler_test.user_traveler_test import (
     UserTravelerTestDetailResponse,
     UserTravelerTestStats
 )
+from schemas.traveler_test import TestSubmissionRequest, TestResultResponse
 from utils.jwt_utils import get_current_active_user, get_admin_user
 from models.user import User
 from datetime import datetime
@@ -329,6 +331,50 @@ async def get_test_scores(
     """Get scores for a specific test"""
     scores = test_service.get_test_scores(traveler_test_id)
     return scores
+
+
+    
+
+
+# ==================== SUBMISSION ROUTE ====================
+
+@router.post("/submit", response_model=TestResultResponse)
+async def submit_traveler_test_answers(
+    payload: TestSubmissionRequest,
+    current_user: User = Depends(get_current_active_user),
+    test_service: UserTravelerTestService = Depends(get_user_traveler_test_service),
+    answer_service: UserAnswerService = Depends(get_user_answer_service),
+):
+    """Submit all answers for a traveler test session.
+
+    Validates ownership and then delegates to the answers service to persist
+    the full set in a single transaction (implemented in Phase 2).
+    """
+    # Ownership check
+    test = test_service.get_user_traveler_test_by_id(payload.user_traveler_test_id)
+    if not test:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Traveler test not found")
+    if test.user_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    # Submit and complete the test, then return a result summary
+    try:
+        completed_test, traveler_type, scores = test_service.submit_and_complete_test(
+            payload.user_traveler_test_id, payload.answers
+        )
+        from schemas.traveler_test.user_traveler_test import UserTravelerTestResponse
+        from schemas.traveler_test.traveler_type import TravelerTypeResponse
+
+        return TestResultResponse(
+            user_traveler_test=UserTravelerTestResponse.model_validate(completed_test),
+            traveler_type=TravelerTypeResponse.model_validate(traveler_type) if traveler_type else None,  # type: ignore[arg-type]
+            scores=scores,
+            completion_time_minutes=getattr(completed_test, "duration_minutes", None),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to submit answers: {str(e)}")
 
 @router.get("/{traveler_test_id}/user-traveler-type")
 async def calculate_user_traveler_type(

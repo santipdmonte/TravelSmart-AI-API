@@ -1,10 +1,10 @@
-from sqlalchemy import Column, Integer, String, Text, Float, Date, DateTime, Boolean, JSON
+from sqlalchemy import Column, Integer, String, Text, Float, Date, DateTime, Boolean, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from datetime import datetime, date, timedelta
 import enum
 import uuid
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
 class UserStatusEnum(enum.Enum):
@@ -167,6 +167,15 @@ class User(Base):
     # Device and browser tracking
     last_user_agent: Mapped[str] = mapped_column(Text, nullable=True)
     preferred_language: Mapped[str] = mapped_column(String(10), nullable=True, default="en")
+
+    # Traveler profile
+    traveler_type_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("traveler_types.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    traveler_type = relationship("TravelerType", back_populates="users", passive_deletes=True)
     
     def __str__(self):
         return self.display_name or self.username or self.email

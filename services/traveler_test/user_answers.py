@@ -35,8 +35,9 @@ class UserAnswerService:
         if not user_test:
             raise ValueError(f"User traveler test with ID {answer_data.user_traveler_test_id} not found")
         
-        # Validate that the question option exists
+        # Validate that the question option exists and its parent question is active
         from models.traveler_test.question_option import QuestionOption
+        from models.traveler_test.question import Question
         question_option = self.db.query(QuestionOption).filter(
             and_(
                 QuestionOption.id == answer_data.question_option_id,
@@ -46,6 +47,15 @@ class UserAnswerService:
         
         if not question_option:
             raise ValueError(f"Question option with ID {answer_data.question_option_id} not found")
+        # Also ensure the parent question is not soft-deleted
+        parent_q = self.db.query(Question).filter(
+            and_(
+                Question.id == question_option.question_id,
+                Question.deleted_at.is_(None)
+            )
+        ).first()
+        if not parent_q:
+            raise ValueError("The parent question for the selected option is deleted or not found")
         
         # Check if an active answer already exists for this combination
         existing_answer = self.get_answer_by_test_and_option(
@@ -189,8 +199,9 @@ class UserAnswerService:
         if not existing_answer:
             raise ValueError(f"No active answer found for test {user_traveler_test_id} and question option {question_option_id}")
         
-        # Validate that the new question option exists
+        # Validate that the new question option exists and its parent question is active
         from models.traveler_test.question_option import QuestionOption
+        from models.traveler_test.question import Question
         new_question_option = self.db.query(QuestionOption).filter(
             and_(
                 QuestionOption.id == new_question_option_id,
@@ -200,6 +211,14 @@ class UserAnswerService:
         
         if not new_question_option:
             raise ValueError(f"Question option with ID {new_question_option_id} not found")
+        parent_q = self.db.query(Question).filter(
+            and_(
+                Question.id == new_question_option.question_id,
+                Question.deleted_at.is_(None)
+            )
+        ).first()
+        if not parent_q:
+            raise ValueError("The parent question for the selected option is deleted or not found")
         
         # Check if the new answer already exists
         existing_new_answer = self.get_answer_by_test_and_option(user_traveler_test_id, new_question_option_id)
@@ -271,66 +290,107 @@ class UserAnswerService:
         }
     
     def bulk_create_answers(self, answers_data: UserAnswerBulkCreate) -> List[UserAnswer]:
-        """Create multiple user answers at once"""
-        created_answers = []
-        
+        """Replace all active answers for a test using a mapping of question_id -> list[question_option_id].
+
+        Behavior:
+        - Validates test exists and is active.
+        - Validates all provided options exist and belong to their respective questions.
+        - Soft-deletes existing active answers for the test to avoid duplicates on resubmission.
+        - Inserts one UserAnswer per option in the mapping, inside a single transaction.
+        """
+        created_answers: List[UserAnswer] = []
+
         try:
             # Validate that the user traveler test exists
             from models.traveler_test.user_traveler_test import UserTravelerTest
+            from models.traveler_test.question_option import QuestionOption
+            from models.traveler_test.question import Question
+
             user_test = self.db.query(UserTravelerTest).filter(
                 and_(
                     UserTravelerTest.id == answers_data.user_traveler_test_id,
                     UserTravelerTest.deleted_at.is_(None)
                 )
             ).first()
-            
             if not user_test:
                 raise ValueError(f"User traveler test with ID {answers_data.user_traveler_test_id} not found")
-            
-            # Validate that all question options exist
-            from models.traveler_test.question_option import QuestionOption
-            question_options = self.db.query(QuestionOption).filter(
-                and_(
-                    QuestionOption.id.in_(answers_data.answers),
-                    QuestionOption.deleted_at.is_(None)
-                )
-            ).all()
-            
-            if len(question_options) != len(answers_data.answers):
-                raise ValueError("Some question options not found")
-            
-            # Check for existing active answers
-            existing_answers = self.db.query(UserAnswer).filter(
+
+            # Flatten all submitted option IDs and collect question IDs
+            question_ids = list(answers_data.answers.keys())
+            option_ids: List[uuid.UUID] = []
+            for opt_list in answers_data.answers.values():
+                option_ids.extend(opt_list)
+
+            # If nothing to insert, still perform the soft-delete to clear previous answers
+            # and return empty list (treat as clearing answers)
+
+            # Validate that questions exist (active only)
+            if question_ids:
+                existing_questions = self.db.query(Question.id).filter(
+                    and_(
+                        Question.id.in_(question_ids),
+                        Question.deleted_at.is_(None)
+                    )
+                ).all()
+                if len(existing_questions) != len(question_ids):
+                    raise ValueError("Some questions provided were not found or are deleted")
+
+            # Validate that all question options exist (active) and map to their question
+            option_to_question: Dict[uuid.UUID, uuid.UUID] = {}
+            if option_ids:
+                rows = self.db.query(QuestionOption.id, QuestionOption.question_id).filter(
+                    and_(
+                        QuestionOption.id.in_(option_ids),
+                        QuestionOption.deleted_at.is_(None)
+                    )
+                ).all()
+                if len(rows) != len(option_ids):
+                    raise ValueError("Some question options provided were not found or are deleted")
+                option_to_question = {row.id: row.question_id for row in rows}
+
+                # Ensure parent questions are also active for all provided options
+                parent_q_ids = list({row.question_id for row in rows})
+                active_parents = self.db.query(Question.id).filter(
+                    and_(
+                        Question.id.in_(parent_q_ids),
+                        Question.deleted_at.is_(None)
+                    )
+                ).all()
+                if len(active_parents) != len(parent_q_ids):
+                    raise ValueError("Some options refer to questions that are deleted")
+
+            # Validate option belongs to the specified question for all entries
+            for q_id, opt_list in answers_data.answers.items():
+                for opt_id in opt_list:
+                    owner_q = option_to_question.get(opt_id)
+                    if owner_q is None or owner_q != q_id:
+                        raise ValueError(f"Option {opt_id} does not belong to question {q_id}")
+
+            # Transaction: soft-delete existing answers, then insert the new set
+            # Soft-delete all active answers for this test
+            self.db.query(UserAnswer).filter(
                 and_(
                     UserAnswer.user_traveler_test_id == answers_data.user_traveler_test_id,
-                    UserAnswer.question_option_id.in_(answers_data.answers),
                     UserAnswer.deleted_at.is_(None)
                 )
-            ).all()
-            
-            if existing_answers:
-                existing_option_ids = [answer.question_option_id for answer in existing_answers]
-                raise ValueError(f"Active answers already exist for question options: {existing_option_ids}")
-            
-            # Create answers
-            for question_option_id in answers_data.answers:
-                answer_data = UserAnswerCreate(
-                    user_traveler_test_id=answers_data.user_traveler_test_id,
-                    question_option_id=question_option_id
-                )
-                
-                db_answer = UserAnswer(**answer_data.dict())
-                self.db.add(db_answer)
-                created_answers.append(db_answer)
-            
+            ).update({UserAnswer.deleted_at: datetime.utcnow()}, synchronize_session=False)
+
+            # Insert new answers
+            for q_id, opt_list in answers_data.answers.items():
+                for opt_id in opt_list:
+                    db_answer = UserAnswer(
+                        user_traveler_test_id=answers_data.user_traveler_test_id,
+                        question_option_id=opt_id
+                    )
+                    self.db.add(db_answer)
+                    created_answers.append(db_answer)
+
             self.db.commit()
-            
-            # Refresh all created answers
-            for answer in created_answers:
-                self.db.refresh(answer)
-            
+
+            for ans in created_answers:
+                self.db.refresh(ans)
             return created_answers
-            
+
         except Exception as e:
             self.db.rollback()
             raise ValueError(f"Failed to create answers: {str(e)}")
@@ -409,6 +469,98 @@ class UserAnswerService:
             result.append(answer_data)
         
         return result
+
+    def bulk_create_user_answers(self, user_traveler_test_id: uuid.UUID, answers: Dict[uuid.UUID, uuid.UUID]) -> List[UserAnswer]:
+        """Atomically replace all answers for a given test with the provided mapping.
+
+        Args:
+            user_traveler_test_id: The test session ID.
+            answers: Dict mapping question_id -> question_option_id.
+
+        Returns:
+            List of created UserAnswer records.
+
+        Behavior:
+            - Validates test exists and is active (not soft-deleted).
+            - Validates each provided option exists and belongs to the given question.
+            - Soft-deletes any existing active answers for the test, then inserts the new set.
+            - Commits the transaction upon success, otherwise rolls back.
+        """
+        if not answers:
+            raise ValueError("Answers payload cannot be empty")
+
+        from models.traveler_test.user_traveler_test import UserTravelerTest
+        from models.traveler_test.question_option import QuestionOption
+        from models.traveler_test.question import Question
+
+        # Validate test exists
+        test = self.db.query(UserTravelerTest).filter(
+            and_(
+                UserTravelerTest.id == user_traveler_test_id,
+                UserTravelerTest.deleted_at.is_(None),
+            )
+        ).first()
+        if not test:
+            raise ValueError(f"User traveler test with ID {user_traveler_test_id} not found")
+
+        # Collect ids
+        question_ids = list(answers.keys())
+        option_ids = list(answers.values())
+
+        # Validate questions exist
+        existing_questions = self.db.query(Question.id).filter(
+            and_(
+                Question.id.in_(question_ids),
+                Question.deleted_at.is_(None),
+            )
+        ).all()
+        if len(existing_questions) != len(question_ids):
+            raise ValueError("Some questions in the submission were not found or have been deleted")
+
+        # Fetch options and map id -> question_id
+        options = self.db.query(QuestionOption.id, QuestionOption.question_id).filter(
+            and_(
+                QuestionOption.id.in_(option_ids),
+                QuestionOption.deleted_at.is_(None),
+            )
+        ).all()
+        if len(options) != len(option_ids):
+            raise ValueError("Some question options in the submission were not found or have been deleted")
+
+        option_to_question = {row.id: row.question_id for row in options}
+
+        # Validate each mapping option belongs to the provided question
+        for q_id, opt_id in answers.items():
+            owner_q = option_to_question.get(opt_id)
+            if owner_q is None or owner_q != q_id:
+                raise ValueError(f"Option {opt_id} does not belong to question {q_id}")
+
+        created: List[UserAnswer] = []
+        try:
+            # Soft-delete existing active answers for this test to avoid duplicates
+            self.db.query(UserAnswer).filter(
+                and_(
+                    UserAnswer.user_traveler_test_id == user_traveler_test_id,
+                    UserAnswer.deleted_at.is_(None),
+                )
+            ).update({UserAnswer.deleted_at: datetime.utcnow()}, synchronize_session=False)
+
+            # Insert new answers
+            for q_id, opt_id in answers.items():
+                ua = UserAnswer(
+                    user_traveler_test_id=user_traveler_test_id,
+                    question_option_id=opt_id,
+                )
+                self.db.add(ua)
+                created.append(ua)
+
+            self.db.commit()
+            for ua in created:
+                self.db.refresh(ua)
+            return created
+        except Exception as e:
+            self.db.rollback()
+            raise ValueError(f"Failed to persist answers: {str(e)}")
 
 
 def get_user_answer_service(db: Session = Depends(get_db)) -> UserAnswerService:

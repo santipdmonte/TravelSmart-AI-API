@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any, List, Literal
 from datetime import datetime, date
 from enum import Enum
 import uuid
+from schemas.traveler_test.traveler_type import TravelerTypeResponse
 
 
 class VisibilityEnum(str, Enum):
@@ -119,6 +120,7 @@ class ItineraryResponse(ItineraryBase):
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
     deleted_at: Optional[datetime] = Field(None, description="Deletion timestamp")
+    traveler_profile: Optional[TravelerTypeResponse] = Field(None, description="Resolved traveler type used to personalize this itinerary")
 
     class Config:
         from_attributes = True  # Enable ORM mode for SQLAlchemy compatibility (Pydantic V2)
