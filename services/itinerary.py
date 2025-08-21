@@ -77,6 +77,7 @@ class ItineraryService:
                     duration_days=itinerary_data.duration_days,
                     traveler_profile_name=tt.name,
                     traveler_profile_desc=tt.prompt_description or tt.description or "",
+                    preferences=itinerary_data.preferences,
                 )
 
         # 2) Generate state via graph with the enriched input

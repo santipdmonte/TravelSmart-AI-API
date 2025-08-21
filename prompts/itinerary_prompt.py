@@ -26,6 +26,8 @@ El usuario te ha proporcionado la siguiente información:
 Destino: {state.trip_name}
 Duración: {state.duration_days}
 
+{f"Preferencias: {state.preferences}" if state.preferences else ""}
+
 El itinerario debe ser creado para el pasajero y debe ser personalizado.
 
 Se considera un nuevo destino cuando el pasajero debe dormir en otro lugar que no sea el destino actual.

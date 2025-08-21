@@ -105,6 +105,18 @@ class ItineraryUpdate(BaseModel):
             date: lambda v: v.isoformat() if v else None
         }
 
+class ItineraryPreferences(BaseModel):
+    """Schema for itinerary preferences"""
+    when: Optional[str] = Field(None, description="When the trip is happening")
+    trip_type: Optional[str] = Field(None, description="Type of trip")
+    occasion: Optional[str] = Field(None, description="Occasion of the trip")
+    city_view: Optional[str] = Field(None, description="City view")
+    travel_styles: Optional[List[str]] = Field(None, description="Travel styles")
+    food_preferences: Optional[List[str]] = Field(None, description="Food preferences")
+    budget: Optional[float] = Field(None, description="Budget")
+    budget_currency: Optional[str] = Field(None, description="Budget currency")
+    notes: Optional[str] = Field(None, description="Notes")
+
 class ItineraryGenerate(BaseModel):
     """Schema for generating an itinerary"""
     trip_name: str = Field(..., max_length=200, description="Name of the trip")
@@ -112,6 +124,7 @@ class ItineraryGenerate(BaseModel):
     # Optional traveler profile to personalize generation (filled server-side from Traveler Test)
     traveler_profile_name: Optional[str] = Field(None, description="Latest traveler type name for the user")
     traveler_profile_desc: Optional[str] = Field(None, description="Description used to steer itinerary generation")
+    preferences: Optional[ItineraryPreferences] = Field(None, description="Preferences for the itinerary generation")
 
 
 class ItineraryResponse(ItineraryBase):
