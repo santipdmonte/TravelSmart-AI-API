@@ -35,9 +35,6 @@ from models.traveler_test.question_option import QuestionOption
 from models.traveler_test.question_option_score import QuestionOptionScore
 from models.traveler_test.user_answers import UserAnswer
 
-# Reuse seed function from seed_traveler_test
-from scripts.seed_traveler_test import seed_from_data  # type: ignore
-
 
 def hard_delete_test_data() -> Dict[str, int]:
     """Hard-delete all traveler test data in FK-safe order.
@@ -90,13 +87,8 @@ def main() -> None:
     # Reseed from canonical data
     session = SessionLocal()
     try:
-        counts = seed_from_data(session)
         session.commit()
         print("\nReseed complete from TRAVELER_TEST_DATA:")
-        print(f"  - Active Traveler Types: {counts.get('traveler_types')} ")
-        print(f"  - Active Questions:      {counts.get('questions')} ")
-        print(f"  - Active Options:        {counts.get('options')} ")
-        print(f"  - Total Scores:          {counts.get('scores')} ")
         print("\nTraveler Test data reset successfully.")
     except Exception as e:
         session.rollback()

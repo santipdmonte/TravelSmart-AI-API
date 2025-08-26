@@ -60,184 +60,138 @@ TRAVELER_TEST_DATA = {
 TRAVELER_TEST_DATA: Dict[str, List[Dict]] = {
     "traveler_types": [
         {
-            "name": "Adventurer",
-            "description": "Loves adrenaline, nature, and physical challenges. Not afraid to step out of their comfort zone.",
-            "prompt_description": "Prioritize high-impact activities: extreme sports, trekking in remote places, wild nature exploration, and flexible transport options like 4x4 vehicles. Avoid rigid or overly touristy itineraries.",
+            "name": "Aventurero",
+            "description": "Amante de la adrenalina, la naturaleza y los desafíos físicos. No teme salir de su zona de confort.",
+            "prompt_description": "Priorizar actividades de alto impacto: deportes extremos, trekking en lugares remotos, exploración de naturaleza salvaje y opciones de transporte flexibles. Evitar itinerarios rígidos o demasiado turísticos.",
             "image_url": None,
         },
         {
-            "name": "Cultural Explorer",
-            "description": "Passionate about history, art, architecture, and local traditions. Enjoys learning on every visit.",
-            "prompt_description": "Focus the itinerary on historic centers, museums, art galleries, guided tours, local shows, and traditional cuisine. The pace can be intense but knowledge-focused.",
+            "name": "Explorador Cultural",
+            "description": "Apasionado por la historia, el arte, la arquitectura y las tradiciones locales. Disfruta aprendiendo en cada visita.",
+            "prompt_description": "Enfocar el itinerario en centros históricos, museos, galerías de arte, tours guiados, espectáculos locales y gastronomía tradicional. El ritmo puede ser intenso pero centrado en el conocimiento.",
             "image_url": None,
         },
         {
-            "name": "Relaxed Traveler",
-            "description": "Seeks to disconnect, rest, and recharge. Prefers destinations and activities that bring peace and tranquility.",
-            "prompt_description": "Create itineraries with a gentle pace. Include beach days, spa stays, nature walks without pressure, free afternoons, and quiet dinners. Avoid early mornings and tight schedules.",
+            "name": "Viajero Relajado",
+            "description": "Busca desconectar, descansar y recargar energías. Prefiere destinos y actividades que le aporten paz y tranquilidad.",
+            "prompt_description": "Crear itinerarios con un ritmo suave. Incluir días de playa, estancias en spas, paseos por la naturaleza sin presiones, tardes libres y cenas tranquilas. Evitar madrugones y agendas apretadas.",
             "image_url": None,
         },
         {
             "name": "Gourmet",
-            "description": "Main motivation for travel is food. From local markets to Michelin-starred restaurants.",
-            "prompt_description": "The trip should revolve around gastronomy. Include reservations at recommended restaurants, food tours, cooking classes, market visits, and tastings of local products (wine, cheese, etc.).",
+            "description": "Su principal motivación para viajar es la comida. Desde mercados locales hasta restaurantes con estrellas Michelin.",
+            "prompt_description": "El viaje debe girar en torno a la gastronomía. Incluir reservas en restaurantes recomendados, tours de comida, clases de cocina, visitas a mercados y degustaciones de productos locales (vino, queso, etc.).",
             "image_url": None,
         },
         {
-            "name": "Social & Nightlife",
-            "description": "Loves nightlife, meeting people, and being at the center of the action. Travels to have fun and socialize.",
-            "prompt_description": "Design a plan that includes recommendations for bars, clubs, events, and neighborhoods with vibrant nightlife. Suggest group activities and hostels or hotels with a good social atmosphere.",
+            "name": "Social y Nocturno",
+            "description": "Le encanta la vida nocturna, conocer gente y estar en el centro de la acción. Viaja para divertirse y socializar.",
+            "prompt_description": "Diseñar un plan que incluya recomendaciones de bares, discotecas, eventos y barrios con mucha vida nocturna. Sugerir actividades en grupo y hoteles con buen ambiente social.",
             "image_url": None,
         },
         {
-            "name": "Romantic",
-            "description": "Travels as a couple seeking special moments, beautiful landscapes, and intimate experiences. Ideal for honeymoons or anniversaries.",
-            "prompt_description": "Create an itinerary with candlelit dinners, boutique hotels, scenic walks, activities for two, and moments of privacy. The atmosphere should be special and cared for.",
+            "name": "Romántico",
+            "description": "Viaja en pareja buscando momentos especiales, paisajes hermosos y experiencias íntimas. Ideal para lunas de miel o aniversarios.",
+            "prompt_description": "Crear un itinerario con cenas a la luz de las velas, hoteles boutique, paseos panorámicos, actividades para dos y momentos de privacidad. El ambiente debe ser especial y cuidado.",
             "image_url": None,
         },
     ],
     "questions": [
         {
             "order": 1,
-            "question": "What is your ideal way to explore a destination?",
-            "category": "Exploration Style",
+            "question": "¿Cuál es tu forma ideal de explorar un destino?",
+            "category": "Estilo de Exploración",
             "multi_select": False,
             "options": [
                 {
-                    "option": "With a tour that takes me to the most famous places.",
-                    "scores": {"Adventurer": -2, "Cultural Explorer": 8, "Relaxed Traveler": 5, "Gourmet": 3, "Social & Nightlife": 4, "Romantic": 6},
+                    "option": "Con un tour que me lleve a los lugares más famosos.",
+                    "scores": {"Aventurero": -2, "Explorador Cultural": 8, "Viajero Relajado": 5, "Gourmet": 3, "Social y Nocturno": 4, "Romántico": 6},
                 },
                 {
-                    "option": "Getting lost on alternative routes.",
-                    "scores": {"Adventurer": 10, "Cultural Explorer": 6, "Relaxed Traveler": -2, "Gourmet": 4, "Social & Nightlife": 3, "Romantic": 4},
+                    "option": "Perdiéndome por rutas alternativas.",
+                    "scores": {"Aventurero": 10, "Explorador Cultural": 6, "Viajero Relajado": -2, "Gourmet": 4, "Social y Nocturno": 3, "Romántico": 4},
                 },
                 {
-                    "option": "Living like a local, no rush.",
-                    "scores": {"Adventurer": 2, "Cultural Explorer": 7, "Relaxed Traveler": 10, "Gourmet": 8, "Social & Nightlife": 5, "Romantic": 8},
+                    "option": "Viviendo como un local, sin prisas.",
+                    "scores": {"Aventurero": 2, "Explorador Cultural": 7, "Viajero Relajado": 10, "Gourmet": 8, "Social y Nocturno": 5, "Romántico": 8},
                 },
             ],
         },
         {
             "order": 2,
-            "question": "When you think of the perfect trip, what word comes to mind?",
-            "category": "Main Interest",
+            "question": "Cuando piensas en el viaje perfecto, ¿qué palabra te viene a la mente?",
+            "category": "Interés Principal",
             "multi_select": False,
             "options": [
-                {"option": "Adventure", "scores": {"Adventurer": 10, "Cultural Explorer": 0, "Relaxed Traveler": -5, "Gourmet": -1, "Social & Nightlife": 3, "Romantic": 2}},
-                {"option": "Culture", "scores": {"Adventurer": 0, "Cultural Explorer": 10, "Relaxed Traveler": 2, "Gourmet": 4, "Social & Nightlife": 1, "Romantic": 5}},
-                {"option": "Relax", "scores": {"Adventurer": -5, "Cultural Explorer": 2, "Relaxed Traveler": 10, "Gourmet": 3, "Social & Nightlife": -2, "Romantic": 8}},
-                {"option": "Flavors", "scores": {"Adventurer": 2, "Cultural Explorer": 4, "Relaxed Traveler": 3, "Gourmet": 10, "Social & Nightlife": 5, "Romantic": 6}},
-                {"option": "Party", "scores": {"Adventurer": 3, "Cultural Explorer": -2, "Relaxed Traveler": -4, "Gourmet": 2, "Social & Nightlife": 10, "Romantic": 1}},
+                {"option": "Aventura", "scores": {"Aventurero": 10, "Explorador Cultural": 0, "Viajero Relajado": -5, "Gourmet": -1, "Social y Nocturno": 3, "Romántico": 2}},
+                {"option": "Cultura", "scores": {"Aventurero": 0, "Explorador Cultural": 10, "Viajero Relajado": 2, "Gourmet": 4, "Social y Nocturno": 1, "Romántico": 5}},
+                {"option": "Relajación", "scores": {"Aventurero": -5, "Explorador Cultural": 2, "Viajero Relajado": 10, "Gourmet": 3, "Social y Nocturno": -2, "Romántico": 8}},
+                {"option": "Sabores", "scores": {"Aventurero": 2, "Explorador Cultural": 4, "Viajero Relajado": 3, "Gourmet": 10, "Social y Nocturno": 5, "Romántico": 6}},
+                {"option": "Fiesta", "scores": {"Aventurero": 3, "Explorador Cultural": -2, "Viajero Relajado": -4, "Gourmet": 2, "Social y Nocturno": 10, "Romántico": 1}},
+                {"option": "Romance", "scores": {"Aventurero": 1, "Explorador Cultural": 5, "Viajero Relajado": 8, "Gourmet": 6, "Social y Nocturno": 2, "Romántico": 10}},
+                {"option": "Adrenalina", "scores": {"Aventurero": 10, "Social y Nocturno": 4, "Viajero Relajado": -6, "Romántico": 1}},
             ],
         },
         {
             "order": 3,
-            "question": "Gastronomy on your trip is...",
-            "category": "Gastronomy",
+            "question": "La gastronomía en tu viaje es...",
+            "category": "Gastronomía",
             "multi_select": False,
             "options": [
-                {"option": "The main reason for my trip.", "scores": {"Adventurer": 1, "Cultural Explorer": 5, "Relaxed Traveler": 4, "Gourmet": 10, "Social & Nightlife": 5, "Romantic": 7}},
-                {"option": "Important, I like to try everything.", "scores": {"Adventurer": 6, "Cultural Explorer": 8, "Relaxed Traveler": 6, "Gourmet": 7, "Social & Nightlife": 6, "Romantic": 8}},
-                {"option": "Just a way to recharge energy.", "scores": {"Adventurer": 4, "Cultural Explorer": -3, "Relaxed Traveler": 2, "Gourmet": -5, "Social & Nightlife": 3, "Romantic": 1}},
-                {"option": "I prefer cheap and on-the-go options.", "scores": {"Adventurer": 7, "Cultural Explorer": 2, "Relaxed Traveler": 3, "Gourmet": 1, "Social & Nightlife": 6, "Romantic": 2}},
+                {"option": "La razón principal de mi viaje.", "scores": {"Aventurero": 1, "Explorador Cultural": 5, "Viajero Relajado": 4, "Gourmet": 10, "Social y Nocturno": 5, "Romántico": 7}},
+                {"option": "Importante, me gusta probar de todo.", "scores": {"Aventurero": 6, "Explorador Cultural": 8, "Viajero Relajado": 6, "Gourmet": 7, "Social y Nocturno": 6, "Romántico": 8}},
+                {"option": "Solo una forma de reponer energías.", "scores": {"Aventurero": 4, "Explorador Cultural": -3, "Viajero Relajado": 2, "Gourmet": -5, "Social y Nocturno": 3, "Romántico": 1}},
+                {"option": "Prefiero opciones baratas y al paso.", "scores": {"Aventurero": 7, "Explorador Cultural": 2, "Viajero Relajado": 3, "Gourmet": 1, "Social y Nocturno": 6, "Romántico": 2}},
             ],
         },
         {
             "order": 4,
-            "question": "What travel pace best identifies you?",
-            "category": "Pace",
+            "question": "¿Qué ritmo de viaje te identifica más?",
+            "category": "Ritmo",
             "multi_select": False,
             "options": [
-                {"option": "Intense: I want to make the most of every second.", "scores": {"Adventurer": 10, "Cultural Explorer": 7, "Relaxed Traveler": -5, "Gourmet": 5, "Social & Nightlife": 8, "Romantic": 2}},
-                {"option": "Balanced: mixing activities with leisure.", "scores": {"Adventurer": 5, "Cultural Explorer": 8, "Relaxed Traveler": 6, "Gourmet": 8, "Social & Nightlife": 6, "Romantic": 8}},
-                {"option": "Relaxed: improvisation is my motto.", "scores": {"Adventurer": -2, "Cultural Explorer": 3, "Relaxed Traveler": 10, "Gourmet": 6, "Social & Nightlife": 4, "Romantic": 10}},
+                {"option": "Intenso: quiero aprovechar cada segundo.", "scores": {"Aventurero": 10, "Explorador Cultural": 7, "Viajero Relajado": -5, "Gourmet": 5, "Social y Nocturno": 8, "Romántico": 2}},
+                {"option": "Equilibrado: mezclando actividades con ocio.", "scores": {"Aventurero": 5, "Explorador Cultural": 8, "Viajero Relajado": 6, "Gourmet": 8, "Social y Nocturno": 6, "Romántico": 8}},
+                {"option": "Relajado: la improvisación es mi lema.", "scores": {"Aventurero": -2, "Explorador Cultural": 3, "Viajero Relajado": 10, "Gourmet": 6, "Social y Nocturno": 4, "Romántico": 10}},
             ],
         },
         {
             "order": 5,
-            "question": "At night, you prefer to...",
-            "category": "Nightlife",
+            "question": "Por la noche, prefieres...",
+            "category": "Vida Nocturna",
             "multi_select": False,
             "options": [
-                {"option": "Go out to bars and experience the local scene.", "scores": {"Adventurer": 4, "Cultural Explorer": 3, "Relaxed Traveler": -2, "Gourmet": 4, "Social & Nightlife": 10, "Romantic": 3}},
-                {"option": "Have a special, quiet dinner.", "scores": {"Adventurer": 2, "Cultural Explorer": 7, "Relaxed Traveler": 8, "Gourmet": 9, "Social & Nightlife": 3, "Romantic": 10}},
-                {"option": "Rest at the hotel for the next day.", "scores": {"Adventurer": 5, "Cultural Explorer": 5, "Relaxed Traveler": 10, "Gourmet": 3, "Social & Nightlife": -3, "Romantic": 6}},
-                {"option": "Attend a cultural show or event.", "scores": {"Adventurer": 1, "Cultural Explorer": 9, "Relaxed Traveler": 5, "Gourmet": 6, "Social & Nightlife": 4, "Romantic": 7}},
+                {"option": "Salir a bares y vivir la escena local.", "scores": {"Aventurero": 4, "Explorador Cultural": 3, "Viajero Relajado": -2, "Gourmet": 4, "Social y Nocturno": 10, "Romántico": 3}},
+                {"option": "Tener una cena especial y tranquila.", "scores": {"Aventurero": 2, "Explorador Cultural": 7, "Viajero Relajado": 8, "Gourmet": 9, "Social y Nocturno": 3, "Romántico": 10}},
+                {"option": "Descansar en el hotel para el día siguiente.", "scores": {"Aventurero": 5, "Explorador Cultural": 5, "Viajero Relajado": 10, "Gourmet": 3, "Social y Nocturno": -3, "Romántico": 6}},
+                {"option": "Asistir a un espectáculo o evento cultural.", "scores": {"Aventurero": 1, "Explorador Cultural": 9, "Viajero Relajado": 5, "Gourmet": 6, "Social y Nocturno": 4, "Romántico": 7}},
             ],
         },
         {
             "order": 6,
-            "question": "Select the activities that interest you the most (you can choose several):",
-            "category": "Direct Interests",
+            "question": "Selecciona las actividades que más te interesan (puedes elegir varias):",
+            "category": "Intereses Directos",
             "multi_select": True,
             "options": [
-                {"option": "Beaches", "scores": {"Relaxed Traveler": 5, "Romantic": 3}},
-                {"option": "City sightseeing", "scores": {"Cultural Explorer": 7, "Social & Nightlife": 3}},
-                {"option": "Outdoor adventures", "scores": {"Adventurer": 8, "Social & Nightlife": 2}},
-                {"option": "Festivals/events", "scores": {"Social & Nightlife": 8, "Cultural Explorer": 4}},
-                {"option": "Food exploration", "scores": {"Gourmet": 8, "Cultural Explorer": 3}},
-                {"option": "Nightlife", "scores": {"Social & Nightlife": 8, "Adventurer": 2}},
-                {"option": "Shopping", "scores": {"Social & Nightlife": 5, "Romantic": 4}},
-                {"option": "Spa wellness", "scores": {"Relaxed Traveler": 9, "Romantic": 4}},
+                {"option": "Playas", "scores": {"Viajero Relajado": 5, "Romántico": 3}},
+                {"option": "Turismo urbano", "scores": {"Explorador Cultural": 7, "Social y Nocturno": 3}},
+                {"option": "Aventuras al aire libre", "scores": {"Aventurero": 8, "Social y Nocturno": 2}},
+                {"option": "Festivales/eventos", "scores": {"Social y Nocturno": 8, "Explorador Cultural": 4}},
+                {"option": "Exploración gastronómica", "scores": {"Gourmet": 8, "Explorador Cultural": 3}},
+                {"option": "Vida nocturna", "scores": {"Social y Nocturno": 8, "Aventurero": 2}},
+                {"option": "Compras", "scores": {"Social y Nocturno": 5, "Romántico": 4}},
+                {"option": "Spa y bienestar", "scores": {"Viajero Relajado": 9, "Romántico": 4}},
             ],
         },
     ],
 }
 
 
-# Mapping of renames from old Spanish names to new English names
-TRAVELER_TYPE_RENAMES = {
-    "Aventurero": "Adventurer",
-    "Cultural": "Cultural Explorer",
-    "Relax": "Relaxed Traveler",
-}
-
 # --- Database Models (assuming they are in the 'models' package) ---
 from database import SessionLocal
 from models import Question, QuestionOption, QuestionOptionScore, TravelerType
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
-
-
-def _apply_traveler_type_renames(db: Session) -> None:
-    """Rename existing types according to TRAVELER_TYPE_RENAMES, merging data."""
-    from models.traveler_test.user_traveler_test import UserTravelerTest
-
-    for old_name, new_name in TRAVELER_TYPE_RENAMES.items():
-        if old_name == new_name:
-            continue
-
-        old_obj = db.query(TravelerType).filter(TravelerType.name == old_name, TravelerType.deleted_at.is_(None)).first()
-        if not old_obj:
-            continue
-
-        target_obj = db.query(TravelerType).filter(TravelerType.name == new_name, TravelerType.deleted_at.is_(None)).first()
-        if not target_obj:
-            old_obj.name = new_name
-            db.add(old_obj)
-            print(f"Renamed TravelerType '{old_name}' to '{new_name}'.")
-            continue
-
-        scores = db.query(QuestionOptionScore).filter(QuestionOptionScore.traveler_type_id == old_obj.id).all()
-        for sc in scores:
-            dup = db.query(QuestionOptionScore).filter(
-                QuestionOptionScore.question_option_id == sc.question_option_id,
-                QuestionOptionScore.traveler_type_id == target_obj.id,
-            ).first()
-            if dup:
-                db.delete(sc)
-            else:
-                sc.traveler_type_id = target_obj.id
-                db.add(sc)
-        
-        uts = db.query(UserTravelerTest).filter(UserTravelerTest.traveler_type_id == old_obj.id).all()
-        for ut in uts:
-            ut.traveler_type_id = target_obj.id
-            db.add(ut)
-
-        old_obj.deleted_at = datetime.now(timezone.utc)
-        db.add(old_obj)
-        print(f"Merged TravelerType '{old_name}' into '{new_name}' and soft-deleted the old one.")
 
 
 @contextmanager
@@ -261,7 +215,8 @@ def get_or_create_traveler_type(db: Session, name: str, **defaults) -> TravelerT
     if tt:
         updated = False
         for k, v in defaults.items():
-            if getattr(tt, k, None) != v and v is not None:
+            # Update even when value is None (e.g., to clear image_url)
+            if getattr(tt, k, None) != v:
                 setattr(tt, k, v)
                 updated = True
         if updated:
@@ -280,7 +235,8 @@ def get_or_create_question(db: Session, question_text: str, **defaults) -> Quest
     if q:
         updated = False
         for k, v in defaults.items():
-            if getattr(q, k, None) != v and v is not None:
+            # Update even when value is None (e.g., to clear image_url)
+            if getattr(q, k, None) != v:
                 setattr(q, k, v)
                 updated = True
         if updated:
@@ -307,7 +263,8 @@ def get_or_create_option(db: Session, question: Question, option_text: str, **de
     if opt:
         updated = False
         for k, v in defaults.items():
-            if getattr(opt, k, None) != v and v is not None:
+            # Update even when value is None (e.g., to clear image_url)
+            if getattr(opt, k, None) != v:
                 setattr(opt, k, v)
                 updated = True
         if updated:
@@ -341,16 +298,16 @@ def upsert_option_score(db: Session, option: QuestionOption, traveler_type: Trav
     db.add(rec)
     return rec
 
-
-def seed_from_data(db: Session) -> Dict[str, int]:
+def seed_traveler_test(db: Session) -> Dict[str, int]:
     """Seed DB from the TRAVELER_TEST_DATA structure (idempotent/upsert)."""
-    _apply_traveler_type_renames(db)
     db.flush()
 
     traveler_type_objs: Dict[str, TravelerType] = {}
     for tt_data in TRAVELER_TEST_DATA.get("traveler_types", []):
         name = tt_data["name"].strip()
         defaults = {k: v for k, v in tt_data.items() if k != "name"}
+        # Always keep images null
+        defaults["image_url"] = None
         traveler_type_objs[name] = get_or_create_traveler_type(db, name, **defaults)
 
     for q_data in TRAVELER_TEST_DATA.get("questions", []):
@@ -358,7 +315,8 @@ def seed_from_data(db: Session) -> Dict[str, int]:
         q_defaults = {
             "order": q_data.get("order"),
             "category": q_data.get("category"),
-            "image_url": q_data.get("image_url"),
+            # Always keep images null
+            "image_url": None,
             "multi_select": q_data.get("multi_select", False),
         }
         q_obj = get_or_create_question(db, question_text, **q_defaults)
@@ -367,7 +325,8 @@ def seed_from_data(db: Session) -> Dict[str, int]:
             option_text = opt_data["option"].strip()
             opt_defaults = {
                 "description": opt_data.get("description"),
-                "image_url": opt_data.get("image_url"),
+                # Always keep images null
+                "image_url": None,
             }
             opt_obj = get_or_create_option(db, q_obj, option_text, **opt_defaults)
 
@@ -424,12 +383,12 @@ def main() -> None:
             print(f"  - Pruned Traveler Types: {pruned['traveler_types']}")
             print(f"  - Pruned Questions: {pruned['questions']}")
 
-        counts = seed_from_data(db)
-        print("\nTraveler Test seed completed from TRAVELER_TEST_DATA:")
-        print(f"  - Active Traveler Types: {counts['traveler_types']}")
-        print(f"  - Active Questions:      {counts['questions']}")
-        print(f"  - Active Options:        {counts['options']}")
-        print(f"  - Total Scores:          {counts['scores']}")
+        counts = seed_traveler_test(db)
+        print("Seeding complete:")
+        print(f"  - Traveler Types: {counts['traveler_types']}")
+        print(f"  - Questions: {counts['questions']}")
+        print(f"  - Options: {counts['options']}")
+        print(f"  - Scores: {counts['scores']}")
 
 
 if __name__ == "__main__":
