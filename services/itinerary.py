@@ -275,7 +275,22 @@ class ItineraryService:
         if not itinerary:
             return {}
 
-        start_date = itinerary.start_date
+        if not itinerary.details_itinerary:
+            return {}
+
+        if not itinerary.details_itinerary["destinos"]:
+            return {}
+
+        if not itinerary.start_date:
+            start_date = datetime.now().date()
+        else:
+            start_date = itinerary.start_date
+
+        if not itinerary.travelers_count:
+            travelers_count = 2
+        else:
+            travelers_count = itinerary.travelers_count
+
         destinations = itinerary.details_itinerary["destinos"]
 
         result = {}
@@ -286,9 +301,9 @@ class ItineraryService:
             end_date = start_date + timedelta(days=cantidad_dias_destino)
 
             result[destination_name] = {
-                "airbnb": generate_airbnb_link(destination_name, start_date, end_date, itinerary.travelers_count),
-                "booking": generate_booking_link(destination_name, start_date, end_date, itinerary.travelers_count),
-                "expedia": generate_expedia_link(destination_name, start_date, end_date, itinerary.travelers_count),
+                "airbnb": generate_airbnb_link(destination_name, start_date, end_date, travelers_count),
+                "booking": generate_booking_link(destination_name, start_date, end_date, travelers_count),
+                "expedia": generate_expedia_link(destination_name, start_date, end_date, travelers_count),
             }
 
             start_date = end_date
