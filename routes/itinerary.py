@@ -219,6 +219,14 @@ def get_user_itineraries(
     service = get_itinerary_service(db)
     return service.get_itineraries_by_user(user_id, skip, limit)
 
+@itinerary_router.get("/{itinerary_id}/accommodations/links")
+def get_accommodations_links(
+    itinerary_id: uuid.UUID,
+    db: Session = Depends(get_db)
+):
+    """Get the accommodations links for an itinerary"""
+    service = get_itinerary_service(db)
+    return service.get_accommodations_links(itinerary_id)
 
 @itinerary_router.get("/session/{session_id}", response_model=List[ItineraryList])
 def get_session_itineraries(

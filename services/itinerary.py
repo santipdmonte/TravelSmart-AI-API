@@ -4,12 +4,13 @@ from models.itinerary import Itinerary
 from models.user import User
 from schemas.itinerary import ItineraryCreate, ItineraryUpdate, ItineraryGenerate
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 from graphs.itinerary_graph import itinerary_graph
 from graphs.itinerary_agent import itinerary_agent
 from utils.agent import is_valid_thread_state
 from utils.utils import state_to_dict, detect_hil_mode
+from utils.accommodation_link import generate_airbnb_link, generate_booking_link, generate_expedia_link
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 from models.traveler_test.traveler_type import TravelerType
@@ -267,6 +268,32 @@ class ItineraryService:
             "public_itineraries": public,
             "private_itineraries": private
         }
+
+    def get_accommodations_links(self, itinerary_id: uuid.UUID) -> dict:
+        """Get the accommodations link for an itinerary"""
+        itinerary = self.get_itinerary_by_id(itinerary_id)
+        if not itinerary:
+            return {}
+
+        start_date = itinerary.start_date
+        destinations = itinerary.details_itinerary["destinos"]
+
+        result = {}
+        for destination in destinations:
+            destination_name = destination["nombre_destino"]
+            cantidad_dias_destino = destination["cantidad_dias_en_destino"]
+
+            end_date = start_date + timedelta(days=cantidad_dias_destino)
+
+            result[destination_name] = {
+                "airbnb": generate_airbnb_link(destination_name, start_date, end_date, itinerary.travelers_count),
+                "booking": generate_booking_link(destination_name, start_date, end_date, itinerary.travelers_count),
+                "expedia": generate_expedia_link(destination_name, start_date, end_date, itinerary.travelers_count),
+            }
+
+            start_date = end_date
+        
+        return result
 
     
     def initilize_agent(self, itinerary: Itinerary, thread_id: str):
