@@ -24,7 +24,7 @@ def generate_main_itinerary(state: ItineraryGenerate): # -> ViajeState:
     print(f"Initail State: {state}")
 
     # Generar el plan de viaje
-    model = ChatOpenAI(model="gpt-4o-mini")
+    model = ChatOpenAI(model="gpt-5-mini")
 
     structured_llm = model.with_structured_output(ViajeState)
     results = structured_llm.invoke(
