@@ -24,7 +24,8 @@ from langgraph.types import interrupt
 
 
 # Define model and checkpointer
-model = ChatOpenAI(model="gpt-4o-mini")
+model = ChatOpenAI(model="gpt-5-mini")
+web_search_model = "gpt-5"
 checkpointer = MemorySaver()
 
 # ==== Custom state ====
@@ -109,7 +110,24 @@ def apply_itinerary_modifications(
             ]
         })
 
-tools = [apply_itinerary_modifications]
+def web_search(
+    query: str
+) -> str:
+    """
+    Search the web for the query.
+    """
+    from openai import OpenAI
+    client = OpenAI()
+
+    response = client.responses.create(
+        model=web_search_model,
+        tools=[{"type": "web_search"}],
+        input=query
+    )
+
+    return response.output[-1].content[0].text
+
+tools = [apply_itinerary_modifications, web_search]
 
 
 # ==== Create agents ====
