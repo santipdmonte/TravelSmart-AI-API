@@ -152,6 +152,8 @@ async def verify_email(
         location_data=None,  # TODO: Implement location service
         user_agent=user_agent
     )
+    # Reload updated user to ensure latest fields (e.g., login_count) are returned
+    user = user_service.get_user_by_id(user.id)
     
     # Create token response for auto-login
     from utils.jwt_utils import create_token_response
@@ -198,6 +200,8 @@ async def verify_email_token(
         location_data=None,
         user_agent=user_agent
     )
+    # Reload updated user to ensure latest fields (e.g., login_count) are returned
+    user = user_service.get_user_by_id(user.id)
     
     # Create token response for auto-login
     from utils.jwt_utils import create_token_response

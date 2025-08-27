@@ -96,6 +96,7 @@ class UserResponse(UserBase):
     status: UserStatusEnum = Field(..., description="User account status")
     role: UserRoleEnum = Field(..., description="User role")
     email_verified: bool = Field(..., description="Whether email is verified")
+    login_count: int = Field(..., description="Number of successful logins for this user")
     subscription_type: str = Field(..., description="User's subscription type")
     is_public_profile: bool = Field(..., description="Whether profile is public")
     total_trips_created: int = Field(..., description="Total number of trips created")
