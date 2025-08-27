@@ -17,6 +17,7 @@ from utils.jwt_utils import (
 )
 from models.user import User
 import uuid
+from services.traveler_test.travel_style_mapping import TRAVELER_TYPE_STYLE_MAP
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 user_router = APIRouter(prefix="/users", tags=["Users"])
@@ -272,7 +273,24 @@ async def get_profile(
     current_user: User = Depends(get_current_active_user)
 ):
     """Get current user profile"""
-    return UserResponse.model_validate(current_user)
+    # Build base response
+    user_resp = UserResponse.model_validate(current_user)
+
+    # Enrich with default_travel_styles if traveler_type available
+    try:
+        # Prefer eager-loaded relation name if present; fallback to None
+        traveler_type_obj = getattr(current_user, "traveler_type", None)
+        traveler_type_name = None
+        if traveler_type_obj and getattr(traveler_type_obj, "name", None):
+            traveler_type_name = traveler_type_obj.name
+        # If not eager-loaded, some flows might only have the id; skip DB hit and just omit defaults
+        if traveler_type_name:
+            user_resp.default_travel_styles = TRAVELER_TYPE_STYLE_MAP.get(traveler_type_name, None)
+    except Exception:
+        # Do not break the endpoint on enrichment errors
+        pass
+
+    return user_resp
 
 
 @user_router.put("/profile", response_model=UserResponse)
