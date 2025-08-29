@@ -1,6 +1,59 @@
 from schemas.itinerary import ItineraryGenerate
 
 
+def _format_preferences(state: ItineraryGenerate) -> str:
+    """Return a readable preferences block.
+    - Expands travel_styles codes into Spanish labels
+    - Keeps other fields as-is if provided
+    """
+    prefs = getattr(state, "preferences", None)
+    if not prefs:
+        return ""
+
+    # Map internal codes to Spanish labels (add new Gastronómico/Festivo)
+    style_map = {
+        "cultural": "Cultural",
+        "relaxing": "Relajado",
+        "adventurous": "Aventurero",
+        "romantic": "Romántico",
+        "adrenaline": "Adrenalina",
+        "gastronomic": "Gastronómico",
+        "festive": "Festivo",
+    }
+
+    lines = []
+    when = getattr(prefs, "when", None)
+    if when:
+        lines.append(f"- Cuándo: {when}")
+    trip_type = getattr(prefs, "trip_type", None)
+    if trip_type:
+        lines.append(f"- Tipo de viaje: {trip_type}")
+    occasion = getattr(prefs, "occasion", None)
+    if occasion:
+        lines.append(f"- Ocasión: {occasion}")
+    city_view = getattr(prefs, "city_view", None)
+    if city_view:
+        lines.append(f"- Estilo de visita a la ciudad: {city_view}")
+    travel_styles = getattr(prefs, "travel_styles", None)
+    if travel_styles:
+        pretty_styles = [style_map.get(s, s) for s in travel_styles]
+        lines.append("- Estilos de viaje: " + ", ".join(pretty_styles))
+    food_prefs = getattr(prefs, "food_preferences", None)
+    if food_prefs:
+        lines.append("- Preferencias alimentarias: " + ", ".join(food_prefs))
+    budget = getattr(prefs, "budget", None)
+    if budget is not None:
+        currency = getattr(prefs, "budget_currency", "USD")
+        lines.append(f"- Presupuesto: {budget} {currency} por persona (total del viaje)")
+    notes = getattr(prefs, "notes", None)
+    if notes:
+        lines.append(f"- Notas: {notes}")
+
+    if not lines:
+        return ""
+    return "\nPreferencias del usuario:\n" + "\n".join(lines)
+
+
 def _profile_block(state: ItineraryGenerate) -> str:
     """Bloque opcional con el perfil del viajero para personalizar el itinerario.
     Si el schema trae traveler_profile_name/desc, se añade al final del prompt
@@ -18,6 +71,7 @@ def _profile_block(state: ItineraryGenerate) -> str:
 
 
 def get_itinerary_prompt(state: ItineraryGenerate):
+    prefs_block = _format_preferences(state)
     PROMPT = f"""
 Eres el encargado en crear itinerarios para viajes.
 
@@ -26,7 +80,7 @@ El usuario te ha proporcionado la siguiente información:
 Destino: {state.trip_name}
 Duración: {state.duration_days}
 
-{f"Preferencias: {state.preferences}" if state.preferences else ""}
+{prefs_block}
 
 El itinerario debe ser creado para el pasajero y debe ser personalizado.
 
