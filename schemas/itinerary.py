@@ -133,7 +133,7 @@ class ItineraryResponse(ItineraryBase):
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
     deleted_at: Optional[datetime] = Field(None, description="Deletion timestamp")
-    traveler_profile: Optional[TravelerTypeResponse] = Field(None, description="Resolved traveler type used to personalize this itinerary")
+    # traveler_profile: Optional[TravelerTypeResponse] = Field(None, description="Resolved traveler type used to personalize this itinerary")
 
     class Config:
         from_attributes = True  # Enable ORM mode for SQLAlchemy compatibility (Pydantic V2)
