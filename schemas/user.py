@@ -96,6 +96,7 @@ class UserResponse(UserBase):
     status: UserStatusEnum = Field(..., description="User account status")
     role: UserRoleEnum = Field(..., description="User role")
     email_verified: bool = Field(..., description="Whether email is verified")
+    login_count: int = Field(..., description="Number of successful logins for this user")
     subscription_type: str = Field(..., description="User's subscription type")
     is_public_profile: bool = Field(..., description="Whether profile is public")
     total_trips_created: int = Field(..., description="Total number of trips created")
@@ -104,6 +105,8 @@ class UserResponse(UserBase):
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
     traveler_type_id: Optional[uuid.UUID] = Field(None, description="Current traveler type profile for this user")
+    # Derived from traveler's profile type; used by frontend to preselect travel styles on create itinerary
+    default_travel_styles: Optional[List[str]] = Field(None, description="Derived default travel styles based on traveler type")
     
     class Config:
         from_attributes = True  # Enable ORM mode for SQLAlchemy compatibility (Pydantic V2)
