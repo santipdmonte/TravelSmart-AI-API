@@ -26,13 +26,9 @@ class ItineraryService:
         itinerary_dict = itinerary_data.dict()
         
         # Set user_id if user is authenticated, otherwise use session_id
-        if user:
-            itinerary_dict['user_id'] = str(user.id)  # Convert UUID to string for Auth0 compatibility
-            itinerary_dict['session_id'] = None  # Clear session_id for authenticated users
-        else:
-            itinerary_dict['user_id'] = None
-            itinerary_dict['session_id'] = session_id or uuid.uuid4()
-        
+        itinerary_dict['user_id'] = str(user.id)  if user else None # Convert UUID to string for Auth0 compatibility
+        itinerary_dict['session_id'] = None  if user else (session_id or uuid.uuid4()) # Clear session_id for authenticated users
+
         db_itinerary = Itinerary(**itinerary_dict)
         self.db.add(db_itinerary)
         self.db.commit()
@@ -43,70 +39,31 @@ class ItineraryService:
             user.total_trips_created += 1
             self.db.commit()
 
-        # Attach traveler_profile detail for response convenience
-        try:
-            if user and getattr(user, "traveler_type_id", None):
-                # If user was eager-loaded, use that; else fetch
-                tt_obj = getattr(user, "traveler_type", None)
-                if not tt_obj:
-                    try:
-                        tt_obj = self.db.get(TravelerType, user.traveler_type_id)  # type: ignore[attr-defined]
-                    except Exception:
-                        tt_obj = self.db.query(TravelerType).get(user.traveler_type_id)  # type: ignore[attr-defined]
-                if tt_obj:
-                    # Non-persistent attribute for serialization layer
-                    setattr(db_itinerary, "traveler_profile", tt_obj)
-        except Exception:
-            pass
-
         return db_itinerary
 
     def generate_itinerary(self, itinerary_data: ItineraryGenerate, user: Optional[User] = None, session_id: Optional[uuid.UUID] = None) -> Itinerary:
         """Generate an itinerary with automatic user/session assignment"""
 
-        # 1) If authenticated, enrich generation input with user's current traveler_type
         if user and getattr(user, "traveler_type_id", None):
-            # Prefer session.get in SQLAlchemy 2.x
-            try:
-                tt: Optional[TravelerType] = self.db.get(TravelerType, user.traveler_type_id)  # type: ignore[attr-defined]
-            except Exception:
-                # Fallback to legacy Query.get if needed
-                tt = self.db.query(TravelerType).get(user.traveler_type_id)  # type: ignore[attr-defined]
-            if tt:
+
+            traveler_type_id = getattr(user, "traveler_type_id", None)
+            traveler_type: Optional[TravelerType] = self.db.get(TravelerType, traveler_type_id)  # type: ignore[attr-defined]
+
+            if traveler_type:
                 itinerary_data = ItineraryGenerate(
                     trip_name=itinerary_data.trip_name,
                     duration_days=itinerary_data.duration_days,
-                    traveler_profile_name=tt.name,
-                    traveler_profile_desc=tt.prompt_description or tt.description or "",
+                    traveler_profile_name=traveler_type.name,
+                    traveler_profile_desc=traveler_type.prompt_description or traveler_type.description or "",
                     preferences=itinerary_data.preferences,
                 )
 
-        # 2) Generate state via graph with the enriched input
         state = itinerary_graph.invoke(itinerary_data)
         details_itinerary = state_to_dict(state)
 
-        # 3) Audit: expose traveler profile used inside details_itinerary
-        try:
-            if isinstance(details_itinerary, dict):
-                details_itinerary.setdefault("_meta", {})
-                profile_meta = {
-                    "name": getattr(itinerary_data, "traveler_profile_name", None),
-                    "desc": getattr(itinerary_data, "traveler_profile_desc", None),
-                }
-                if user and getattr(user, "traveler_type_id", None):
-                    profile_meta["traveler_type_id"] = str(user.traveler_type_id)
-                details_itinerary["_meta"]["traveler_profile"] = profile_meta
-        except Exception:
-            # non-fatal: keep generation even if audit metadata fails
-            pass
-
         # Set user_id if user is authenticated, otherwise use session_id
-        if user:
-            user_id = str(user.id)
-            session_id_to_use = None
-        else:
-            user_id = None
-            session_id_to_use = session_id or uuid.uuid4()
+        user_id = str(user.id) if user else None
+        session_id_to_use = None if user else (session_id or uuid.uuid4())
 
         db_itinerary = Itinerary(
             trip_name=itinerary_data.trip_name,
