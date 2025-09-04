@@ -9,12 +9,11 @@ from schemas.itinerary import ItineraryGenerate
 
 load_dotenv()
 
-from state import (
-    ViajeState,
-    ViajeStateInput,
+from states.itinerary import (
+    ViajeState
 )
 
-def generate_main_itinerary(state: ItineraryGenerate): # -> ViajeState:
+def generate_main_itinerary(state: ItineraryGenerate):
     """Generar el plan de viaje
     
     Args:
