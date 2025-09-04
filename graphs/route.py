@@ -14,7 +14,7 @@ class DestinationState(BaseModel):
     city_name: str
     country_name: str
     country_code: str
-    coordenates: str
+    coordinates: str
     days: int
     activities_suggestions: str
 
