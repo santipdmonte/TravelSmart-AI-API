@@ -282,3 +282,32 @@ def get_agent_state(
     if agent_state is False:
         raise HTTPException(status_code=404, detail="Agent thread not found or invalid")
     return agent_state
+
+
+from graphs.route import generate_route as generate_route_ai
+from utils.utils import state_to_dict
+
+@itinerary_router.post("/route")
+def generate_route(
+    itinerary_data: ItineraryGenerate,
+    # request: Request,
+    # current_user: Optional[User] = Depends(get_current_user_optional),
+    # db: Session = Depends(get_db)
+):
+    """Generate a route for an itinerary"""
+    state = generate_route_ai(itinerary_data)
+    # details_itinerary = state_to_dict(state)
+
+    return state
+
+
+from graphs.activities_city import generate_activities_city_ai
+
+@itinerary_router.post("/activities/city")
+def generate_activities_city(
+    city: str,
+    days: int,
+):
+    """Generate activities for a city"""
+    state = generate_activities_city_ai(city, days)
+    return state

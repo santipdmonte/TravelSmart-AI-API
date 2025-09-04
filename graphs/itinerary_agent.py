@@ -18,7 +18,7 @@ from langchain_core.tools import InjectedToolCallId
 from langgraph.types import Command
 from langchain_core.messages import ToolMessage
 
-from state import ViajeState
+from states.itinerary import ViajeState
 
 from langgraph.types import interrupt
 
