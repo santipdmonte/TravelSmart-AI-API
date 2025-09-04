@@ -2,7 +2,6 @@ from schemas.itinerary import ItineraryGenerate
 
 
 def get_itinerary_prompt(state: ItineraryGenerate):
-    prefs_block = _format_preferences(state)
     PROMPT = f"""
 # PROMPT MAESTRO PARA GENERACIÓN DE ITINERARIOS PERSONALIZADOS
 
