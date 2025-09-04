@@ -252,8 +252,8 @@ class ItineraryService:
 
         result = {}
         for destination in destinations:
-            destination_name = destination["nombre_destino"]
-            cantidad_dias_destino = destination["cantidad_dias_en_destino"]
+            destination_name = (f"{destination["ciudad"]}, {destination["pais"]}")
+            cantidad_dias_destino = destination["dias_en_destino"]
 
             end_date = start_date + timedelta(days=cantidad_dias_destino)
 

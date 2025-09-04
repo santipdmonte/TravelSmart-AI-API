@@ -1,6 +1,6 @@
 from schemas.itinerary import ItineraryGenerate
 from pydantic import BaseModel
-
+from enum import Enum
 from langgraph.graph import START, END, StateGraph
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage
@@ -10,6 +10,14 @@ load_dotenv()
 
 # == STATES ==
 
+class TrasnportEnum(str, Enum):
+    AVION = "Avión"
+    TREN = "Tren"
+    COLECTIVO = "Colectivo"
+    AUTO = "Auto"
+    BARCO = "Barco"
+    OTRO = "Otro"
+
 class DestinationState(BaseModel):
     city_name: str
     country_name: str
@@ -18,9 +26,18 @@ class DestinationState(BaseModel):
     days: int
     activities_suggestions: str
 
+class TransportationState(BaseModel):
+    transportation_type: TrasnportEnum
+    city_origin: str
+    city_destination: str
+    justification: str
+    alternatives: str
+
 class RouteState(BaseModel):
     destinations: list[DestinationState]
+    transportations: list[TransportationState]
     justification: str
+    route_name: str
 
 
 # == PROMPTS ==
@@ -51,10 +68,17 @@ Tene en cuenta estas preferencias para ajustar las recomendaciones al viajero.
 *Estas son preferencias puntuales que este cliente selecciono, por lo que tienen un mayor peso sobre la descripcion del perfil""" 
 if state.preferences else ""}
 
-#### B. ITINERARIO DETALLADO POR DESTINOS Y DÍAS
+#### ITINERARIO DETALLADO POR DESTINOS
 **Cada destino:**
 - Se considera un nuevo destino cuando el pasajero debe dormir en otro lugar que no sea el destino actual.
 - Para cada destino establecer el nombre de la ciudad, pais. (Con este nombre se debe poder encontrar la ciudad en paginas de hoteles como booking.com, tripadvisor, etc.)
+
+#### TRANSPORTACIONES
+**Cada transportacion:**
+- Cada vez que el pasajero debe viajar a un nuevo destino, se debe establecer la forma de transporte recomendada.
+- Se debe tener en cuenta el tiempo de viaje, el costo, el motivo de la recomendacion y las alternativas viables.
+- Establecer la justificacion de la recomendacion y las alternativas viables.
+
 
 """
 
