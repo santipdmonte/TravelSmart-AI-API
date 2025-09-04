@@ -299,3 +299,15 @@ def generate_route(
     # details_itinerary = state_to_dict(state)
 
     return state
+
+
+from graphs.activities_city import generate_activities_city_ai
+
+@itinerary_router.post("/activities/city")
+def generate_activities_city(
+    city: str,
+    days: int,
+):
+    """Generate activities for a city"""
+    state = generate_activities_city_ai(city, days)
+    return state
