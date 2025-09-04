@@ -36,18 +36,20 @@ Tene en cuenta estas preferencias para ajustar las recomendaciones al viajero.
 - Highlights únicos que lo hacen especial
 - Propuesta de valor diferencial
 
-#### B. ITINERARIO DETALLADO POR DESTINOS Y DÍAS
+#### B. ITINERARIO DETALLADO POR DESTINOS
 **Cada destino:**
 - Se considera un nuevo destino cuando el pasajero debe dormir en otro lugar que no sea el destino actual.
 - Para cada destino establecer el nombre de la ciudad, pais. (Con este nombre se debe poder encontrar la ciudad en paginas de hoteles como booking.com, tripadvisor, etc.)
 
-**Para cada día incluye:**
-- **Hora aproximada y actividad principal**
-- **Descripción detallada de cada experiencia**
-- **Justificación de por qué esta actividad encaja con el perfil**
-- **Tips insider y recomendaciones locales**
-- **Alternativas en caso de mal tiempo o imprevistos**
-- **Tiempo estimado y nivel de intensidad**
+#### Transportes entre destinos
+**Cada transporte:**
+- Cada vez que el pasajero debe viajar a un nuevo destino, se debe establecer la forma de transporte recomendada.
+- Se debe tener en cuenta el tiempo de viaje, el costo, el motivo de la recomendacion y las alternativas viables.
+- Establecer la justificacion de la recomendacion y las alternativas viables.
+
+#### JUICIO FINAL
+- Establecer el juicio final del viaje.
+- Establecer la justificacion de la ruta elegida.
 
 #### C. INFORMACIÓN PRÁCTICA
 - **Documentación necesaria:** Visas, seguros, vacunas si aplica
