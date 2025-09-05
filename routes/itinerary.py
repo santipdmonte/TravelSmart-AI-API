@@ -53,22 +53,6 @@ def generate_itinerary(
     return service.generate_itinerary(itinerary_data, current_user, session_id)
 
 
-@itinerary_router.post("/{itinerary_id}/agent/{thread_id}")
-def initialize_agent(
-    itinerary_id: uuid.UUID,
-    thread_id: str,
-    db: Session = Depends(get_db)
-):
-    """Initialize an agent"""
-    service = get_itinerary_service(db)
-
-    itinerary = service.get_itinerary_by_id(itinerary_id)
-    if not itinerary:
-        raise HTTPException(status_code=404, detail="Itinerary not found")
-
-    return service.initilize_agent(itinerary, thread_id)
-
-
 @itinerary_router.get("/{itinerary_id}", response_model=ItineraryResponse)
 def get_itinerary(
     itinerary_id: uuid.UUID,
@@ -240,22 +224,6 @@ def get_session_itineraries(
     return service.get_itineraries_by_session(session_id, skip, limit)
 
 
-@itinerary_router.post("/{itinerary_id}/agent/{thread_id}")
-def initialize_itinerary_agent(
-    itinerary_id: uuid.UUID,
-    thread_id: str,
-    db: Session = Depends(get_db)
-):
-    """Initialize an itinerary agent"""
-    service = get_itinerary_service(db)
-
-    itinerary = service.get_itinerary_by_id(itinerary_id)
-    if not itinerary:
-        raise HTTPException(status_code=404, detail="Itinerary not found")
-
-    return service.initilize_agent(itinerary, thread_id)
-
-
 @itinerary_router.post("/{itinerary_id}/agent/{thread_id}/messages")
 def send_message_to_itinerary_agent(
     itinerary_id: uuid.UUID,
@@ -264,9 +232,11 @@ def send_message_to_itinerary_agent(
     db: Session = Depends(get_db)
 ):
     """Send a message to an itinerary agent"""
+
     service = get_itinerary_service(db)
+
     result = service.send_agent_message(itinerary_id, thread_id, message)
-    if result is False:
+    if not result:
         raise HTTPException(status_code=404, detail="Agent thread not found or invalid")
     return result
 
@@ -279,7 +249,7 @@ def get_agent_state(
     """Get the state of an itinerary agent"""
     service = get_itinerary_service(db)
     agent_state = service.get_agent_state(thread_id)
-    if agent_state is False:
+    if not agent_state:
         raise HTTPException(status_code=404, detail="Agent thread not found or invalid")
     return agent_state
 

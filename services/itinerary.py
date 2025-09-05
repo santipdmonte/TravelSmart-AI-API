@@ -268,18 +268,19 @@ class ItineraryService:
         return result
 
     
-    def initilize_agent(self, itinerary: Itinerary, thread_id: str):
+    def initilize_agent(self, itinerary_id: uuid.UUID, thread_id: str, message: str):
 
         config: RunnableConfig = {
             "configurable": {
                 "thread_id": thread_id,
             }
         }
+        
+        itinerary = self.get_itinerary_by_id(itinerary_id)
 
         initial_state = {
             "itinerary": itinerary.details_itinerary,
-            "user_name": "Juan",
-            "user_id": "user_123",
+            "messages": message,
         }
 
         itinerary_agent.invoke(initial_state, config=config)
@@ -297,10 +298,10 @@ class ItineraryService:
             }
         }
 
-        raw_state = itinerary_agent.get_state(config)
-        state_dict = state_to_dict(raw_state)
-        if not is_valid_thread_state(state_dict):
-            return False
+        agent_state = self.get_agent_state(thread_id)
+        if not agent_state:
+            self.initilize_agent(itinerary_id, thread_id, message)
+            return self.get_agent_state(thread_id)
 
         is_hil_mode, hil_message, state_values = detect_hil_mode(itinerary_agent, config)
 
@@ -308,8 +309,7 @@ class ItineraryService:
             itinerary_agent.invoke(Command(resume={"messages": message}), config=config)
 
             itinerary = self.get_itinerary_by_id(itinerary_id)
-
-            agent_state = self.get_agent_state(thread_id)
+            agent_state = self.get_agent_state(thread_id) # update the new agent state
 
             itinerary_update = ItineraryUpdate(
                 details_itinerary=agent_state[0]["itinerary"],

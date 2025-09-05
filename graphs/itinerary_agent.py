@@ -41,10 +41,6 @@ summarization_node = SummarizationNode(
 class CustomState(AgentState):
     context: dict[str, Any]  # Used to store context of the summarization_node, to prevent the need of summarizing the context in all the runs
     itinerary: ViajeState
-    # itinerary: str
-    user_name: str
-    user_id: str
-
 
 # ==== Prompt ====
 PROMPT = """
@@ -55,7 +51,6 @@ Eres el un experto en ajustar itinerarios de viajes segun las necesidades del us
 def prompt(
     state: CustomState
 ):
-    user_name = state["user_name"]
     itinerary = state["itinerary"]
     system_msg = f"{PROMPT} El itinerario actual es: {itinerary}"
     return [{"role": "system", "content": system_msg}] + list(state["messages"])
