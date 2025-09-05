@@ -14,6 +14,7 @@ from schemas.itinerary import (
 from utils.jwt_utils import get_current_user_optional
 from utils.session import get_session_id_from_request
 from models.user import User
+from fastapi.responses import StreamingResponse
 
 itinerary_router = APIRouter(prefix="/api/itineraries", tags=["itineraries"])
 
@@ -239,6 +240,20 @@ def send_message_to_itinerary_agent(
     if not result:
         raise HTTPException(status_code=404, detail="Agent thread not found or invalid")
     return result
+
+
+@itinerary_router.get("/{itinerary_id}/agent/{thread_id}/messages/stream")
+def send_message_to_itinerary_agent_stream(
+    itinerary_id: uuid.UUID,
+    thread_id: str,
+    message: str,
+    db: Session = Depends(get_db)
+):
+    """Send a message to an itinerary agent and stream the response"""
+
+    service = get_itinerary_service(db)
+
+    return StreamingResponse(service.send_agent_message_stream(itinerary_id, thread_id, message), media_type="text/event-stream")   
 
 
 @itinerary_router.get("/agent/{thread_id}")
