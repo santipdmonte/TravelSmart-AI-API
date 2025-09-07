@@ -1,6 +1,6 @@
 """add traveler_type_id to users
 
-Revision ID: 20250814_000003_add_traveler_type_to_user
+Revision ID: 20250814_003
 Revises: 20250812_add_change_log
 Create Date: 2025-08-14
 """
@@ -12,7 +12,7 @@ from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
-revision: str = '20250814_000003_add_traveler_type_to_user'
+revision: str = '20250814_003'
 down_revision: Union[str, Sequence[str], None] = '20250812_add_change_log'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

@@ -1,7 +1,7 @@
 """remove itinerary change log table
 
 Revision ID: 20250815_remove_change_log
-Revises: 20250814_000003_add_traveler_type_to_user
+Revises: 20250814_003
 Create Date: 2025-08-15
 """
 from alembic import op
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '20250815_remove_change_log'
-down_revision = '20250814_000003_add_traveler_type_to_user'
+down_revision = '20250814_003'
 branch_labels = None
 depends_on = None
 

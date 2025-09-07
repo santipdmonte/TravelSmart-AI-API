@@ -1,7 +1,7 @@
 # alembic/env.py
 
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, text
 from alembic import context
 
 # Importa la Base declarativa principal y todos los modelos para que se registren
