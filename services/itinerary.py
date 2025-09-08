@@ -14,6 +14,7 @@ from utils.accommodation_link import generate_airbnb_link, generate_booking_link
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 from models.traveler_test.traveler_type import TravelerType
+import json
 
 class ItineraryService:
     """Service class for itinerary CRUD operations"""
@@ -268,18 +269,19 @@ class ItineraryService:
         return result
 
     
-    def initilize_agent(self, itinerary: Itinerary, thread_id: str):
+    def initilize_agent(self, itinerary_id: uuid.UUID, thread_id: str, message: str):
 
         config: RunnableConfig = {
             "configurable": {
                 "thread_id": thread_id,
             }
         }
+        
+        itinerary = self.get_itinerary_by_id(itinerary_id)
 
         initial_state = {
             "itinerary": itinerary.details_itinerary,
-            "user_name": "Juan",
-            "user_id": "user_123",
+            "messages": message,
         }
 
         itinerary_agent.invoke(initial_state, config=config)
@@ -297,10 +299,10 @@ class ItineraryService:
             }
         }
 
-        raw_state = itinerary_agent.get_state(config)
-        state_dict = state_to_dict(raw_state)
-        if not is_valid_thread_state(state_dict):
-            return False
+        agent_state = self.get_agent_state(thread_id)
+        if not agent_state:
+            self.initilize_agent(itinerary_id, thread_id, message)
+            return self.get_agent_state(thread_id)
 
         is_hil_mode, hil_message, state_values = detect_hil_mode(itinerary_agent, config)
 
@@ -308,8 +310,7 @@ class ItineraryService:
             itinerary_agent.invoke(Command(resume={"messages": message}), config=config)
 
             itinerary = self.get_itinerary_by_id(itinerary_id)
-
-            agent_state = self.get_agent_state(thread_id)
+            agent_state = self.get_agent_state(thread_id) # update the new agent state
 
             itinerary_update = ItineraryUpdate(
                 details_itinerary=agent_state[0]["itinerary"],
@@ -334,6 +335,61 @@ class ItineraryService:
         itinerary_agent.invoke({"messages": message}, config=config)
 
         return self.get_agent_state(thread_id)
+
+
+    def send_agent_message_stream(self, itinerary_id: uuid.UUID, thread_id: str, message: str):
+        config: RunnableConfig = {
+            "configurable": {
+                "thread_id": thread_id,
+            }
+        }
+
+        agent_state = self.get_agent_state(thread_id)
+
+        # Initialize the agent if it doesn't exist
+        if not agent_state: 
+            itinerary = self.get_itinerary_by_id(itinerary_id)
+            state = {
+                "itinerary": itinerary.details_itinerary,
+                "messages": message,
+            }
+
+        else:
+
+            is_hil_mode, hil_message, state_values = detect_hil_mode(itinerary_agent, config)
+            if is_hil_mode:
+                state = Command(resume={"messages": message})
+            else:
+                state = {"messages": message}
+
+        for chunk, metadata in itinerary_agent.stream(state, config=config, stream_mode="messages"):
+            if chunk.content:
+                yield f"data: {json.dumps({'token': chunk.content})}\n\n"
+
+        if agent_state and is_hil_mode:
+
+            itinerary = self.get_itinerary_by_id(itinerary_id)
+            agent_state = self.get_agent_state(thread_id) # update the new agent state
+
+            itinerary_update = ItineraryUpdate(
+                details_itinerary=agent_state[0]["itinerary"],
+                trip_name=agent_state[0]["itinerary"]["nombre_viaje"],
+                duration_days=agent_state[0]["itinerary"]["cantidad_dias"],
+                slug=itinerary.slug,
+                destination=itinerary.destination,
+                start_date=itinerary.start_date,
+                travelers_count=itinerary.travelers_count,
+                budget=itinerary.budget,
+                trip_type=itinerary.trip_type,
+                tags=itinerary.tags,
+                notes=itinerary.notes,
+                visibility=itinerary.visibility,
+                status=itinerary.status,
+            )
+
+            self.update_itinerary(itinerary_id, itinerary_update)
+
+        yield "data: [DONE]\n\n"     
 
 
     def get_agent_state(self, thread_id: str):
