@@ -6,7 +6,7 @@ from schemas.itinerary import ItineraryCreate, ItineraryUpdate, ItineraryGenerat
 from typing import List, Optional
 from datetime import datetime, timedelta
 import uuid
-from graphs.itinerary_graph import itinerary_graph
+from graphs.itinerary_graph import generate_main_itinerary
 from graphs.itinerary_agent import itinerary_agent
 from utils.agent import is_valid_thread_state
 from utils.utils import state_to_dict, detect_hil_mode
@@ -59,7 +59,7 @@ class ItineraryService:
                     preferences=itinerary_data.preferences,
                 )
 
-        state = itinerary_graph.invoke(itinerary_data)
+        state = generate_main_itinerary(itinerary_data)
         details_itinerary = state_to_dict(state)
 
         # Set user_id if user is authenticated, otherwise use session_id
