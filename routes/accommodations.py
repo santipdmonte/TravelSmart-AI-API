@@ -9,7 +9,10 @@ from schemas.accommodations import (
     AccommodationCreate,
     AccommodationUpdate,
     AccommodationResponse,
+    AccommodationScrapeRequest,
+    AccommodationScrapeResponse,
 )
+from utils.scrapper import scrape_accommodation
 
 
 accommodations_router = APIRouter(prefix="/api/accommodations", tags=["accommodations"])
@@ -97,5 +100,17 @@ def list_accommodations_by_itinerary_and_city(
 ):
     service: AccommodationsService = get_accommodations_service(db)
     return service.list_by_itinerary_and_city(itinerary_id, city, skip, limit)
+
+
+@accommodations_router.post("/scrape", response_model=AccommodationScrapeResponse)
+def scrape_accommodation_by_url(payload: AccommodationScrapeRequest):
+    try:
+        data = scrape_accommodation(str(payload.url))
+        return AccommodationScrapeResponse(**data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error scraping accommodation: {str(e)}")
+
+
+
 
 

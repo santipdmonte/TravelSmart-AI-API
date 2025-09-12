@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 
 from models.accommodations import Accommodations
 from schemas.accommodations import AccommodationCreate, AccommodationUpdate
+from utils.scrapper import scrape_accommodation
 
 
 class AccommodationsService:
@@ -116,6 +117,8 @@ class AccommodationsService:
             return "EXPEDIA"
         return "OTHER"
 
+    def scrape_url(self, url: str):
+        return scrape_accommodation(url)
 
 def get_accommodations_service(db: Session) -> AccommodationsService:
     return AccommodationsService(db)

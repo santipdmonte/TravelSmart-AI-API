@@ -34,3 +34,14 @@ class AccommodationResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+class AccommodationScrapeRequest(BaseModel):
+    url: AnyUrl = Field(..., description="Accommodation URL to scrape")
+
+
+class AccommodationScrapeResponse(BaseModel):
+    provider: str
+    title: Optional[str]
+    description: Optional[str]
+    images: List[AnyUrl] = Field(default_factory=list)
+
