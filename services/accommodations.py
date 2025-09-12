@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from typing import List, Optional
 from uuid import UUID as UUID_TYPE
+from urllib.parse import urlparse
 
 from models.accommodations import Accommodations
 from schemas.accommodations import AccommodationCreate, AccommodationUpdate
@@ -36,10 +37,13 @@ class AccommodationsService:
             # Already present and active
             raise ValueError("This accommodation is already in the list for this itinerary")
 
+        url_str = str(data.url)
+        provider = self._detect_provider(url_str)
         new_record = Accommodations(
             itinerary_id=data.itinerary_id,
             city=data.city,
-            url=str(data.url),
+            url=url_str,
+            provider=provider,
         )
         self.db.add(new_record)
         self.db.commit()
@@ -96,6 +100,21 @@ class AccommodationsService:
         self.db.delete(record)
         self.db.commit()
         return True
+
+    def _detect_provider(self, url_str: str) -> str:
+        """Return provider name based on URL host."""
+        try:
+            host = urlparse(url_str).netloc.lower()
+        except Exception:
+            return "OTHER"
+
+        if "airbnb." in host:
+            return "AIRBNB"
+        if "booking." in host:
+            return "BOOKING"
+        if "expedia." in host:
+            return "EXPEDIA"
+        return "OTHER"
 
 
 def get_accommodations_service(db: Session) -> AccommodationsService:
