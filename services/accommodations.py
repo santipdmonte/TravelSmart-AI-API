@@ -14,6 +14,28 @@ class AccommodationsService:
         self.db = db
 
     def create(self, data: AccommodationCreate) -> Accommodations:
+        # Check for existing by unique key (itinerary_id, url)
+        existing: Optional[Accommodations] = (
+            self.db.query(Accommodations)
+            .filter(
+                and_(
+                    Accommodations.itinerary_id == data.itinerary_id,
+                    Accommodations.url == str(data.url),
+                )
+            )
+            .first()
+        )
+
+        if existing is not None:
+            if existing.status == "deleted":
+                # Revive deleted entry as draft
+                existing.status = "draft"
+                self.db.commit()
+                self.db.refresh(existing)
+                return existing
+            # Already present and active
+            raise ValueError("This accommodation is already in the list for this itinerary")
+
         new_record = Accommodations(
             itinerary_id=data.itinerary_id,
             city=data.city,
