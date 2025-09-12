@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import json
 import random
 import time
+import os
 
 
 def _detect_provider(url: str) -> str:
@@ -24,8 +25,8 @@ def scrape_accommodation(url: str) -> Dict[str, Optional[str] | List[str]]:
         return _scrape_airbnb(url)
     if provider == "BOOKING":
         return _scrape_booking(url)
-    if provider == "EXPEDIA":
-        return _scrape_expedia(url)
+    # if provider == "EXPEDIA":
+    #     return _scrape_expedia(url)
     # Fallback
     return {"provider": provider, "title": None, "description": None, "images": []}
 
@@ -152,61 +153,6 @@ def _scrape_booking(url: str) -> Dict[str, Optional[str] | List[str]]:
         "images": images_out,
     }
 
-
-def _scrape_expedia(url: str) -> Dict[str, Optional[str] | List[str]]:
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-    }
-    with httpx.Client(follow_redirects=True, timeout=20) as client:
-        resp = client.get(url, headers=headers)
-        resp.raise_for_status()
-        html = resp.text
-
-    soup = BeautifulSoup(html, "html.parser")
-
-    title = _first_non_empty(
-        soup.select_one('meta[property="og:title"]'),
-        soup.select_one('meta[name="twitter:title"]'),
-        soup.select_one('title'),
-    )
-    title_text = (title.get("content") if title and title.name == "meta" else title.text.strip() if title else None)
-
-    description_el = _first_non_empty(
-        soup.select_one('meta[property="og:description"]'),
-        soup.select_one('meta[name="description"]'),
-        soup.select_one('meta[name="twitter:description"]'),
-    )
-    description_text = description_el.get("content") if description_el else None
-
-    images: List[str] = []
-
-    # JSON-LD images if present
-    for script in soup.find_all("script", type="application/ld+json"):
-        try:
-            data = json.loads(script.string or "{}")
-        except json.JSONDecodeError:
-            continue
-        if isinstance(data, dict):
-            images.extend(_extract_images_from_jsonld(data))
-        elif isinstance(data, list):
-            for item in data:
-                if isinstance(item, dict):
-                    images.extend(_extract_images_from_jsonld(item))
-
-    if not images:
-        og_image = soup.select_one('meta[property="og:image"]')
-        if og_image and og_image.get("content"):
-            images.append(og_image.get("content"))
-
-    images_out = _dedupe_cap(images, 5)
-
-    return {
-        "provider": "EXPEDIA",
-        "title": title_text,
-        "description": description_text,
-        "images": images_out,
-    }
 
 
 def _extract_images_from_jsonld(data: dict) -> List[str]:

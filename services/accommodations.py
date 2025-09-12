@@ -39,11 +39,25 @@ class AccommodationsService:
             raise ValueError("This accommodation is already in the list for this itinerary")
 
         url_str = str(data.url)
-        provider = self._detect_provider(url_str)
+        try:
+            scraped_data = scrape_accommodation(url_str)
+            provider = scraped_data["provider"]
+            title = scraped_data["title"]
+            description = scraped_data["description"]
+            img_urls = scraped_data["images"]            
+        except Exception as e:
+            provider = self._detect_provider(url_str)
+            title = None
+            description = None
+            img_urls = []            
+
         new_record = Accommodations(
             itinerary_id=data.itinerary_id,
             city=data.city,
             url=url_str,
+            title=title,
+            description=description,
+            img_urls=img_urls,
             provider=provider,
         )
         self.db.add(new_record)
@@ -116,9 +130,6 @@ class AccommodationsService:
         if "expedia." in host:
             return "EXPEDIA"
         return "OTHER"
-
-    def scrape_url(self, url: str):
-        return scrape_accommodation(url)
 
 def get_accommodations_service(db: Session) -> AccommodationsService:
     return AccommodationsService(db)
