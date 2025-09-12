@@ -1,6 +1,7 @@
 from .user import User
 from .itinerary import Itinerary
 from .transportation import Transportation
+from .accommodations import Accommodations
 
 # Importar todos los modelos del traveler test
 from .traveler_test.question import Question

@@ -6,6 +6,7 @@ from routes.document_analyzer_router import document_analyzer_router
 from routes.itinerary import itinerary_router
 from routes.user import router as auth_router, user_router
 from routes.transportation import transportation_router
+from routes.accommodations import accommodations_router
 from routes.traveler_test.traveler_type import router as traveler_type_router
 from routes.traveler_test.user_traveler_test import router as user_traveler_test_router
 from routes.traveler_test.question import router as question_router
@@ -55,6 +56,7 @@ app.include_router(auth_router)  # Authentication routes (/auth)
 app.include_router(user_router)  # User management routes (/users)
 app.include_router(itinerary_router)  # Itinerary routes
 app.include_router(transportation_router)  # Transport routes
+app.include_router(accommodations_router)  # Accommodations routes
 app.include_router(traveler_type_router)  # Traveler type routes (/traveler-types)
 app.include_router(user_traveler_test_router)  # User traveler test routes (/traveler-tests)
 app.include_router(user_traveler_test_router, prefix="/api")  # Also expose under /api for FE compatibility
