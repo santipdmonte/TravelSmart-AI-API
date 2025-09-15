@@ -76,6 +76,7 @@ class UserUpdate(BaseModel):
     travel_experience_level: Optional[str] = Field(None, description="Travel experience level")
     measurement_system: Optional[str] = Field(None, description="Preferred measurement system")
     preferred_language: Optional[str] = Field(None, max_length=10, description="User's preferred language")
+    traveler_type_id: Optional[uuid.UUID] = Field(None, description="Current traveler type profile for this user")
     
     class Config:
         use_enum_values = True
