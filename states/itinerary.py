@@ -15,7 +15,7 @@ class TransporteEntreDestinosState(BaseModel):
     ciudad_destino: str
     tipo_transporte: TrasnportEnum
     justificacion: str
-    alternativas: str
+    alternativas: List[str]
 
 class DestinoState(BaseModel):
     ciudad: str
@@ -23,7 +23,7 @@ class DestinoState(BaseModel):
     pais_codigo: str
     coordenadas: str
     dias_en_destino: int
-    actividades_sugeridas: str
+    actividades_sugeridas: List[str]
 
 class ViajeStateInput(BaseModel):
     nombre_viaje: str 
