@@ -270,11 +270,11 @@ def get_agent_state(
 
 
 from graphs.route import generate_route as generate_route_ai
-from utils.utils import state_to_dict
+from states.route import RouteStateInput
 
 @itinerary_router.post("/route")
 def generate_route(
-    itinerary_data: ItineraryGenerate,
+    itinerary_data: RouteStateInput,
     # request: Request,
     # current_user: Optional[User] = Depends(get_current_user_optional),
     # db: Session = Depends(get_db)
