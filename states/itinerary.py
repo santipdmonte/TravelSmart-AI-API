@@ -24,6 +24,7 @@ class DestinoState(BaseModel):
     coordenadas: str
     dias_en_destino: int
     actividades_sugeridas: List[str]
+    sugerencias_alojamiento: str
 
 class ViajeStateInput(BaseModel):
     nombre_viaje: str 
