@@ -115,6 +115,7 @@ class ItineraryPreferences(BaseModel):
     food_preferences: Optional[List[str]] = Field(None, description="Food preferences")
     budget: Optional[float] = Field(None, description="Budget")
     budget_currency: Optional[str] = Field(None, description="Budget currency")
+    goal: Optional[str] = Field(None, description="Goal of the trip")
     notes: Optional[str] = Field(None, description="Notes")
 
 class ItineraryGenerate(BaseModel):
