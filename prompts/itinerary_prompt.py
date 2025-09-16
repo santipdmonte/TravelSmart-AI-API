@@ -52,6 +52,8 @@ if state.preferences else ""}
 
 ## **Validaciones Finales:**
 - Verifica que las coordenadas sean precisas y correspondan a la ciudad mencionada
+- El nombre de la ciudad debe ser el mismo que el nombre de la ciudad en la pagina de hoteles como booking.com, tripadvisor, etc.
+- El nombre del origen y destino de cada transporte debe ser exactamente igual que el nombre en el destino de la ciudad.
 - Confirma que los códigos de país sean correctos (ISO 3166-1 alpha-2)
 - Asegura que los tipos de transporte sean válidos según el enum proporcionado
 - Valida que la distribución de días sea realista y permita disfrutar cada destino
