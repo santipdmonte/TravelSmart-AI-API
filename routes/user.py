@@ -46,7 +46,7 @@ async def update_profile(
 ):
     """Update current user profile"""
     try:
-        updated_user = user_service.update_user(current_user.id, user_data)
+        updated_user = user_service.update_user(current_user, user_data)
         if not updated_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -66,7 +66,7 @@ async def delete_account(
     user_service: UserService = Depends(get_user_service)
 ):
     """Delete current user account (soft delete)"""
-    success = user_service.soft_delete_user(current_user.id)
+    success = user_service.soft_delete_user(current_user)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
