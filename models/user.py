@@ -190,17 +190,11 @@ class User(Base):
     traveler_type = relationship("TravelerType", back_populates="users", passive_deletes=True)
     
     def __str__(self):
-        return self.full_name
+        return self.email
 
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', status='{self.status}')>"
     
-    @property
-    def full_name(self):
-        """Returns the full name of the user"""
-        if self.first_name is not None and self.last_name is not None:
-            return f"{self.first_name} {self.last_name}"
-        return self.first_name or self.last_name or self.email
     
     @property
     def is_premium(self):
