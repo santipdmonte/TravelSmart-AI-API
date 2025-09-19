@@ -21,7 +21,7 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
 # ==================== EMAIL AUTHENTICATION ====================
 
 @auth_router.post("/login")
-async def send_token(
+async def login_via_email(
     email: str,
     background_tasks: BackgroundTasks,
     user_service: UserService = Depends(get_user_service),
@@ -136,7 +136,6 @@ async def callback_via_google(request: Request, user_service: UserService = Depe
 
     :return: Token
     """
-    print("callback_via_google")
     try:
         token = await oauth_google_authorize_access_token(request)
     except OAuthError as e:
