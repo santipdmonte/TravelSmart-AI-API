@@ -28,11 +28,11 @@ class UserService:
         if exists_user:
             return exists_user
 
-        db_user = User(user)
-        self.db.add(db_user)
+        self.db.add(user)
         self.db.commit()
+        self.db.refresh(user)
         
-        return db_user
+        return user
     
     def record_login(self, user_id: uuid.UUID, location_data: Optional[Dict] = None, user_agent: Optional[str] = None) -> bool:
         """Record successful login with location data from third-party API"""
