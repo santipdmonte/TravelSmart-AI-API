@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 import uuid
 
-from dependencies import get_db
+from database import get_db
 from services.accommodations import AccommodationsService, get_accommodations_service
 from schemas.accommodations import (
     AccommodationCreate,

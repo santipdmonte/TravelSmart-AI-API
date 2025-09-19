@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
 
-from dependencies import get_db
+from database import get_db
 from services.traveler_test.traveler_type import TravelerTypeService, get_traveler_type_service
 from schemas.traveler_test.traveler_type import (
     TravelerTypeCreate, TravelerTypeUpdate, TravelerTypeResponse, TravelerTypeDetailResponse

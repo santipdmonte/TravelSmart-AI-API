@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
 
-from dependencies import get_db
+from database import get_db
 from services.traveler_test.user_traveler_test import UserTravelerTestService, get_user_traveler_test_service
 from services.traveler_test.user_answers import UserAnswerService, get_user_answer_service
 from schemas.traveler_test.user_traveler_test import (
@@ -14,7 +14,7 @@ from schemas.traveler_test.user_traveler_test import (
     UserTravelerTestStats
 )
 from schemas.traveler_test import TestSubmissionRequest, TestResultResponse
-from utils.jwt_utils import get_current_active_user, get_admin_user
+from dependencies import get_current_active_user, get_current_active_admin_user
 from models.user import User
 from datetime import datetime
 
@@ -227,7 +227,7 @@ async def delete_user_traveler_test(
 @router.post("/{test_id}/restore", response_model=UserTravelerTestResponse)
 async def restore_user_traveler_test(
     test_id: uuid.UUID,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     test_service: UserTravelerTestService = Depends(get_user_traveler_test_service)
 ):
     """Restore a soft-deleted traveler test (admin only)"""
@@ -291,7 +291,7 @@ async def get_my_test_history(
 async def get_all_traveler_tests(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     test_service: UserTravelerTestService = Depends(get_user_traveler_test_service)
 ):
     """Get all traveler tests (admin only)"""
@@ -301,7 +301,7 @@ async def get_all_traveler_tests(
 
 @router.get("/admin/analytics")
 async def get_test_analytics(
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     test_service: UserTravelerTestService = Depends(get_user_traveler_test_service)
 ):
     """Get analytics for all tests (admin only)"""
@@ -314,7 +314,7 @@ async def get_user_traveler_tests(
     user_id: uuid.UUID,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     test_service: UserTravelerTestService = Depends(get_user_traveler_test_service)
 ):
     """Get all traveler tests for a specific user (admin only)"""

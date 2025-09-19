@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 import uuid
 
-from dependencies import get_db
+from database import get_db
 from services.traveler_test.question_option import QuestionOptionService, get_question_option_service
 from schemas.traveler_test.question_option import (
     QuestionOptionCreate, 
@@ -11,7 +11,7 @@ from schemas.traveler_test.question_option import (
     QuestionOptionResponse, 
     QuestionOptionDetailResponse
 )
-from utils.jwt_utils import get_current_active_user, get_admin_user
+from dependencies import get_current_active_user, get_current_active_admin_user
 from models.user import User
 
 router = APIRouter(prefix="/question-options", tags=["Question Options"])
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/question-options", tags=["Question Options"])
 @router.post("/", response_model=QuestionOptionResponse, status_code=status.HTTP_201_CREATED)
 async def create_question_option(
     option_data: QuestionOptionCreate,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     option_service: QuestionOptionService = Depends(get_question_option_service)
 ):
     """Create a new question option (admin only)"""
@@ -83,7 +83,7 @@ async def get_question_options_by_question(
 async def update_question_option(
     option_id: uuid.UUID,
     option_data: QuestionOptionUpdate,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     option_service: QuestionOptionService = Depends(get_question_option_service)
 ):
     """Update a question option (admin only)"""
@@ -106,7 +106,7 @@ async def update_question_option(
 @router.delete("/{option_id}")
 async def delete_question_option(
     option_id: uuid.UUID,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     option_service: QuestionOptionService = Depends(get_question_option_service)
 ):
     """Soft delete a question option (admin only)"""
@@ -123,7 +123,7 @@ async def delete_question_option(
 @router.post("/{option_id}/restore", response_model=QuestionOptionResponse)
 async def restore_question_option(
     option_id: uuid.UUID,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     option_service: QuestionOptionService = Depends(get_question_option_service)
 ):
     """Restore a soft-deleted question option (admin only)"""
@@ -140,7 +140,7 @@ async def restore_question_option(
 @router.delete("/{option_id}/permanent")
 async def delete_question_option_permanently(
     option_id: uuid.UUID,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     option_service: QuestionOptionService = Depends(get_question_option_service)
 ):
     """Permanently delete a question option (admin only)"""
@@ -159,7 +159,7 @@ async def delete_question_option_permanently(
 @router.post("/bulk", response_model=List[QuestionOptionResponse], status_code=status.HTTP_201_CREATED)
 async def bulk_create_question_options(
     options_data: List[QuestionOptionCreate],
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     option_service: QuestionOptionService = Depends(get_question_option_service)
 ):
     """Create multiple question options at once (admin only)"""
@@ -180,7 +180,7 @@ async def bulk_create_question_options(
 
 @router.get("/stats/overview")
 async def get_question_option_statistics(
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     option_service: QuestionOptionService = Depends(get_question_option_service)
 ):
     """Get question option statistics (admin only)"""

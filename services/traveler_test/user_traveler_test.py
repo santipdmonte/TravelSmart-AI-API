@@ -8,7 +8,7 @@ from schemas.traveler_test.user_traveler_test import (
     UserTravelerTestComplete,
     UserTravelerTestStats
 )
-from dependencies import get_db
+from database import get_db
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import uuid

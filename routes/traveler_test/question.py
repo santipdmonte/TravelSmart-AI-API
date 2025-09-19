@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 import uuid
 
-from dependencies import get_db
+from database import get_db
 from services.traveler_test.question import QuestionService, get_question_service
 from schemas.traveler_test.question import (
     QuestionCreate, 
@@ -11,7 +11,7 @@ from schemas.traveler_test.question import (
     QuestionResponse, 
     QuestionDetailResponse
 )
-from utils.jwt_utils import get_current_active_user, get_admin_user
+from dependencies import get_current_active_user, get_current_active_admin_user
 from models.user import User
 from schemas.traveler_test import TestQuestionnaireResponse, QuestionWithOptionsResponse, QuestionOptionResponse
 
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/questions", tags=["Questions"])
 @router.post("/", response_model=QuestionResponse, status_code=status.HTTP_201_CREATED)
 async def create_question(
     question_data: QuestionCreate,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     question_service: QuestionService = Depends(get_question_service)
 ):
     """Create a new question (admin only)"""
@@ -110,7 +110,7 @@ async def get_questions_by_order(
 async def update_question(
     question_id: uuid.UUID,
     question_data: QuestionUpdate,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     question_service: QuestionService = Depends(get_question_service)
 ):
     """Update a question (admin only)"""
@@ -133,7 +133,7 @@ async def update_question(
 @router.delete("/{question_id}")
 async def delete_question(
     question_id: uuid.UUID,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     question_service: QuestionService = Depends(get_question_service)
 ):
     """Soft delete a question (admin only)"""
@@ -150,7 +150,7 @@ async def delete_question(
 @router.post("/{question_id}/restore", response_model=QuestionResponse)
 async def restore_question(
     question_id: uuid.UUID,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     question_service: QuestionService = Depends(get_question_service)
 ):
     """Restore a soft-deleted question (admin only)"""
@@ -167,7 +167,7 @@ async def restore_question(
 @router.delete("/{question_id}/permanent")
 async def delete_question_permanently(
     question_id: uuid.UUID,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     question_service: QuestionService = Depends(get_question_service)
 ):
     """Permanently delete a question (admin only)"""
@@ -186,7 +186,7 @@ async def delete_question_permanently(
 @router.post("/reorder")
 async def reorder_questions(
     question_orders: List[Dict[str, Any]],
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     question_service: QuestionService = Depends(get_question_service)
 ):
     """Reorder questions (admin only)"""
@@ -208,7 +208,7 @@ async def reorder_questions(
 
 @router.get("/stats/overview")
 async def get_question_statistics(
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     question_service: QuestionService = Depends(get_question_service)
 ):
     """Get question statistics (admin only)"""
@@ -230,7 +230,7 @@ async def search_questions(
 
 @router.get("/next-order")
 async def get_next_question_order(
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     question_service: QuestionService = Depends(get_question_service)
 ):
     """Get the next available question order (admin only)"""

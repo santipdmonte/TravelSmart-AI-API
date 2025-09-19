@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 import uuid
 
-from dependencies import get_db
+from database import get_db
 from services.traveler_test.question_option_score import QuestionOptionScoreService, get_question_option_score_service
 from schemas.traveler_test.question_option_score import (
     QuestionOptionScoreCreate, 
@@ -11,7 +11,7 @@ from schemas.traveler_test.question_option_score import (
     QuestionOptionScoreResponse, 
     QuestionOptionScoreDetailResponse
 )
-from utils.jwt_utils import get_current_active_user, get_admin_user
+from dependencies import get_current_active_user, get_current_active_admin_user
 from models.user import User
 
 router = APIRouter(prefix="/question-option-scores", tags=["Question Option Scores"])
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/question-option-scores", tags=["Question Option Scor
 @router.post("/", response_model=QuestionOptionScoreResponse, status_code=status.HTTP_201_CREATED)
 async def create_question_option_score(
     score_data: QuestionOptionScoreCreate,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     score_service: QuestionOptionScoreService = Depends(get_question_option_score_service)
 ):
     """Create a new question option score (admin only)"""
@@ -112,7 +112,7 @@ async def get_score_by_option_and_type(
 async def update_question_option_score(
     score_id: uuid.UUID,
     score_data: QuestionOptionScoreUpdate,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     score_service: QuestionOptionScoreService = Depends(get_question_option_score_service)
 ):
     """Update a question option score (admin only)"""
@@ -135,7 +135,7 @@ async def update_question_option_score(
 @router.delete("/{score_id}")
 async def delete_question_option_score(
     score_id: uuid.UUID,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     score_service: QuestionOptionScoreService = Depends(get_question_option_score_service)
 ):
     """Soft delete a question option score (admin only)"""
@@ -152,7 +152,7 @@ async def delete_question_option_score(
 @router.post("/{score_id}/restore", response_model=QuestionOptionScoreResponse)
 async def restore_question_option_score(
     score_id: uuid.UUID,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     score_service: QuestionOptionScoreService = Depends(get_question_option_score_service)
 ):
     """Restore a soft-deleted question option score (admin only)"""
@@ -169,7 +169,7 @@ async def restore_question_option_score(
 @router.delete("/{score_id}/permanent")
 async def delete_question_option_score_permanently(
     score_id: uuid.UUID,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     score_service: QuestionOptionScoreService = Depends(get_question_option_score_service)
 ):
     """Permanently delete a question option score (admin only)"""
@@ -188,7 +188,7 @@ async def delete_question_option_score_permanently(
 @router.post("/bulk", response_model=List[QuestionOptionScoreResponse], status_code=status.HTTP_201_CREATED)
 async def bulk_create_question_option_scores(
     scores_data: List[QuestionOptionScoreCreate],
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     score_service: QuestionOptionScoreService = Depends(get_question_option_score_service)
 ):
     """Create multiple question option scores at once (admin only)"""
@@ -209,7 +209,7 @@ async def bulk_create_question_option_scores(
 
 @router.get("/stats/overview")
 async def get_question_option_score_statistics(
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_current_active_admin_user),
     score_service: QuestionOptionScoreService = Depends(get_question_option_score_service)
 ):
     """Get question option score statistics (admin only)"""
