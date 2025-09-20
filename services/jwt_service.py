@@ -22,6 +22,7 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
+GOOGLE_TOKEN_EXPIRE_MINUTES = int(os.getenv("GOOGLE_TOKEN_EXPIRE_MINUTES", "1"))
 EMAIL_TOKEN_EXPIRE_MINUTES = int(os.getenv("EMAIL_TOKEN_EXPIRE_MINUTES", "5"))
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
@@ -115,6 +116,13 @@ class JWTService:
         return jwt.encode(to_encode, self.sercret, algorithm=self.algorithm)
 
 
+    def create_google_verification_token(self, data: dict, expires_delta: Optional[timedelta] = None) -> str:
+        if expires_delta is None:
+            expires_delta = timedelta(minutes=GOOGLE_TOKEN_EXPIRE_MINUTES)
+        to_encode = self._with_standard_claims(data, token_type="google_verified", exp_delta=expires_delta)
+        return jwt.encode(to_encode, self.sercret, algorithm=self.algorithm)
+
+
     # ==================== TOKEN VALIDATION ====================
 
     def validate_access_token(self, token_str: str) -> dict:
@@ -133,6 +141,18 @@ class JWTService:
         try:
             payload = jwt.decode(token_str, self.sercret, algorithms=[self.algorithm])
             if payload.get("type") != "email_verified":
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail=f"Invalid token type: {payload.get('token_type')}",
+                )
+            return payload
+        except InvalidTokenError:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    def validate_google_verified_token(self, token_str: str) -> dict:
+        try:
+            payload = jwt.decode(token_str, self.sercret, algorithms=[self.algorithm])
+            if payload.get("type") != "google_verified":
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail=f"Invalid token type: {payload.get('token_type')}",

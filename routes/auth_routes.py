@@ -17,6 +17,10 @@ from models.token_models import TokenType
 from models.user import User
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from starlette.responses import RedirectResponse
+import os
+
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -131,7 +135,11 @@ async def login_via_google(request: Request):
     return await oauth_google_authorize_redirect(request, redirect_uri)
 
 @auth_router.get("/google/callback")
-async def callback_via_google(request: Request, user_service: UserService = Depends(get_user_service)):
+async def callback_via_google(
+    request: Request, 
+    user_service: UserService = Depends(get_user_service), 
+    token_service: JWTService = Depends(get_token_service)
+):
     """
     Callback function for Google OAuth
     :param request: Request object
@@ -152,7 +160,27 @@ async def callback_via_google(request: Request, user_service: UserService = Depe
     if not token:
         raise HTTPException(status_code=400, detail="No token returned from Google")
     
-    access_token, refresh_token = user_service.process_google_login(token['userinfo'])
+    # access_token, refresh_token = user_service.process_google_login(token['userinfo'])
+    # return TokenPair(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
+    token = token_service.create_google_verification_token(data={"sub": token['userinfo']['email']})
+    # return token
+    return RedirectResponse(f"{FRONTEND_URL}/login/google-validate?token={token}")
+
+
+@auth_router.get("/google/verify-token/")
+async def verify_google_token(token: str, token_service: JWTService = Depends(get_token_service)):
+    payload = token_service.validate_google_verified_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    email = payload.get("sub")
+    data = {"sub": email}
+    access_token = token_service.create_access_token(data=data)
+    refresh_token = token_service.create_refresh_token(data=data)
     return TokenPair(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
