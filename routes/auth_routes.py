@@ -15,18 +15,24 @@ from services.user import get_user_service, UserService
 from fastapi.security import HTTPAuthorizationCredentials
 from models.token_models import TokenType
 from models.user import User
+from pydantic import BaseModel, EmailStr
+from typing import Optional
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
 # ==================== EMAIL AUTHENTICATION ====================
 
+class EmailLoginRequest(BaseModel):
+    email: EmailStr
+
 @auth_router.post("/login")
 async def login_via_email(
-    email: str,
+    payload: EmailLoginRequest,
     background_tasks: BackgroundTasks,
     user_service: UserService = Depends(get_user_service),
     token_service: JWTService = Depends(get_token_service),
 ):
+    email = payload.email
     user = user_service.get_user_by_email(email)
     if not user:
         user = User(email=email)

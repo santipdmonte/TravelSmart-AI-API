@@ -35,8 +35,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY"))
-
 # CORS middleware for frontend integration
 app.add_middleware(
     CORSMiddleware,
@@ -45,6 +43,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY"))
 
 # Create database tables
 ItineraryBase.metadata.create_all(bind=engine)
