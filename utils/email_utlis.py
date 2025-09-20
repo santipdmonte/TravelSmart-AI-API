@@ -17,7 +17,7 @@ SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 SMTP_REPLY_TO = os.getenv("SMTP_REPLY_TO")
 EMAIL_TOKEN_EXPIRE_MINUTES = int(os.getenv("EMAIL_TOKEN_EXPIRE_MINUTES"))
-URL = os.getenv("URL")
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 def send_verification_email(email: str, token: str):
     try:
@@ -28,7 +28,7 @@ def send_verification_email(email: str, token: str):
         message["Subject"] = f"Welcome! Click the button to login"
         message["Reply-To"] = SMTP_REPLY_TO
 
-        verification_link = f"{URL}/auth/verify-token/?token={token}"
+        verification_link = f"{FRONTEND_URL}/login/validate?email_validation_token={token}"
 
         # Plain text fallback
         plain_text_body = verification_link
