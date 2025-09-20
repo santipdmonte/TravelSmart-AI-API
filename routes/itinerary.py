@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
-from dependencies import get_db
+from database import get_db
 from services.itinerary import ItineraryService, get_itinerary_service
 from schemas.itinerary import (
     ItineraryCreate, 
@@ -11,7 +11,7 @@ from schemas.itinerary import (
     ItineraryList,
     ItineraryGenerate
 )
-from utils.jwt_utils import get_current_user_optional
+from dependencies import get_current_user_optional
 from utils.session import get_session_id_from_request
 from models.user import User
 from fastapi.responses import StreamingResponse

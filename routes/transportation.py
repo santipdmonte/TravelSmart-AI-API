@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from schemas.transportation import TransportationCreate, TransportationResponse, TransportationUpdate
 from services.transportation import TransportationServices
 from sqlalchemy.orm import Session
-from dependencies import get_db
+from database import get_db
 from typing import List
 from uuid import UUID
 

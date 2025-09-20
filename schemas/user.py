@@ -9,9 +9,9 @@ from schemas.traveler_test.traveler_type import TravelerTypeResponse
 class UserBase(BaseModel):
     """Base schema with common user fields"""
     email: EmailStr = Field(..., description="User's email address")
-    username: Optional[str] = Field(None, min_length=3, max_length=50, description="Unique username")
     first_name: Optional[str] = Field(None, max_length=100, description="User's first name")
     last_name: Optional[str] = Field(None, max_length=100, description="User's last name")
+    full_name: Optional[str] = Field(None, max_length=255, description="User's full name")
     display_name: Optional[str] = Field(None, max_length=150, description="Display name for the user")
     bio: Optional[str] = Field(None, max_length=500, description="User biography")
     date_of_birth: Optional[date] = Field(None, description="User's date of birth")
@@ -29,30 +29,13 @@ class UserBase(BaseModel):
     travel_experience_level: Optional[str] = Field(None, description="Travel experience level")
     measurement_system: str = Field("metric", description="Preferred measurement system")
     preferred_language: str = Field("en", max_length=10, description="User's preferred language")
+    profile_picture_url: Optional[str] = Field(None, description="User's profile picture URL")
     
     class Config:
         use_enum_values = True
         json_encoders = {
             date: lambda v: v.isoformat() if v else None
         }
-
-
-class UserCreate(UserBase):
-    """Schema for creating a new user"""
-    password: str = Field(..., min_length=8, description="User's password (will be hashed)")
-    
-    @validator('password')
-    def validate_password(cls, v):
-        if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
-        if not any(c.isupper() for c in v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not any(c.islower() for c in v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not any(c.isdigit() for c in v):
-            raise ValueError('Password must contain at least one digit')
-        return v
-
 
 class UserUpdate(BaseModel):
     """Schema for updating an existing user"""
@@ -77,6 +60,7 @@ class UserUpdate(BaseModel):
     measurement_system: Optional[str] = Field(None, description="Preferred measurement system")
     preferred_language: Optional[str] = Field(None, max_length=10, description="User's preferred language")
     traveler_type_id: Optional[uuid.UUID] = Field(None, description="Current traveler type profile for this user")
+    profile_picture_url: Optional[str] = Field(None, description="User's profile picture URL")
     
     class Config:
         use_enum_values = True
@@ -106,7 +90,6 @@ class UserResponse(UserBase):
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
     traveler_type_id: Optional[uuid.UUID] = Field(None, description="Current traveler type profile for this user")
-    # Derived from traveler's profile type; used by frontend to preselect travel styles on create itinerary
     default_travel_styles: Optional[List[str]] = Field(None, description="Derived default travel styles based on traveler type")
     
     class Config:

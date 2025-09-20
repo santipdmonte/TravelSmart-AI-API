@@ -1,16 +1,16 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func
 from fastapi import Depends
-from models.user import User, UserStatusEnum, UserRoleEnum
-from schemas.user import UserCreate, UserUpdate, UserLogin, UserPasswordChange, UserPasswordReset, UserPasswordResetConfirm
-from dependencies import get_db
+from models.user import User, UserStatusEnum, UserRoleEnum, UserSocialAccount, AuthProviderType
+from schemas.user import UserUpdate
+from services.jwt_service import JWTService, get_token_service
+from database import get_db
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 import uuid
-import hashlib
-import secrets
-import bcrypt
-import asyncio
+import os
+
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
 
 class UserService:
@@ -18,76 +18,19 @@ class UserService:
     
     def __init__(self, db: Session):
         self.db = db
+        self.token_service: JWTService = get_token_service(db)
     
     # ==================== AUTHENTICATION METHODS ====================
     
-    def create_user(self, user_data: UserCreate) -> User:
+    def create_user(self, user: User) -> User:
         """Create a new user with hashed password"""
-        # Check if email already exists
-        if self.get_user_by_email(user_data.email):
-            raise ValueError("Email already registered")
-        
-        # Check if username already exists (if provided)
-        if user_data.username and self.get_user_by_username(user_data.username):
-            raise ValueError("Username already taken")
-        
-        # Hash password
-        password_hash = self._hash_password(user_data.password)
-        
-        # Create user data without password
-        user_dict = user_data.dict(exclude={'password'})
-        user_dict['password_hash'] = password_hash
-        
-        # Generate email verification token
-        verification_token = self._generate_token()
-        user_dict['email_verification_token'] = verification_token
-        user_dict['email_verification_token_expires'] = datetime.utcnow() + timedelta(hours=24)
+        exists_user = self.get_user_by_email(user.email)
+        if exists_user:
+            return exists_user
 
-        # Create user
-        db_user = User(**user_dict)
-        self.db.add(db_user)
+        self.db.add(user)
         self.db.commit()
-        self.db.refresh(db_user)
-        
-        # Send verification email
-        try:
-            from services.email import EmailService
-            email_service = EmailService()
-            user_name = db_user.first_name or db_user.username or db_user.email.split('@')[0]
-            
-            # Use the existing helper method which handles async properly
-            success = self._send_verification_email(
-                email=db_user.email,
-                token=verification_token,
-                user_name=user_name
-            )
-            
-            if success:
-                print(f"✅ Verification email sent to {db_user.email}")
-            else:
-                print(f"❌ Failed to send verification email to {db_user.email}")
-                
-        except Exception as e:
-            print(f"⚠️ Warning: Failed to send verification email to {db_user.email}: {e}")
-            print(f"   Error details: {type(e).__name__}: {str(e)}")
-            # Don't fail user creation if email fails
-        
-        return db_user
-    
-    def authenticate_user(self, email: str, password: str) -> Optional[User]:
-        """Authenticate user with email and password"""
-        user = self.get_user_by_email(email)
-        if not user:
-            return None
-        
-        if not self._verify_password(password, user.password_hash):
-            # Record failed login attempt
-            self.record_failed_login(user.id)
-            return None
-        
-        # Check if account is locked
-        if self.is_account_locked(user):
-            return None
+        self.db.refresh(user)
         
         return user
     
@@ -171,15 +114,6 @@ class UserService:
             )
         ).first()
     
-    def get_user_by_username(self, username: str) -> Optional[User]:
-        """Get user by username (excluding soft deleted)"""
-        return self.db.query(User).filter(
-            and_(
-                User.username == username,
-                User.deleted_at.is_(None)
-            )
-        ).first()
-    
     def get_users(self, skip: int = 0, limit: int = 100, status: Optional[UserStatusEnum] = None) -> List[User]:
         """Get all users with optional filtering"""
         query = (
@@ -223,43 +157,28 @@ class UserService:
             )
         ).offset(skip).limit(limit).all()
     
-    def update_user(self, user_id: uuid.UUID, user_data: UserUpdate) -> Optional[User]:
+    def update_user(self, user: User, user_update: UserUpdate) -> Optional[User]:
         """Update an existing user"""
-        user = self.get_user_by_id(user_id)
-        if not user:
-            return None
-        
-        # Check if username is being changed and is available
-        if user_data.username and user_data.username != user.username:
-            if self.get_user_by_username(user_data.username):
-                raise ValueError("Username already taken")
-        
-        update_data = user_data.dict(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(user, field, value)
-        
+        user_update = user_update.model_dump(exclude_unset=True)
+        for key, value in user_update.items():
+            setattr(user, key, value)
+
         self.db.commit()
         self.db.refresh(user)
         return user
     
-    def soft_delete_user(self, user_id: uuid.UUID) -> bool:
+    def soft_delete_user(self, user: User) -> bool:
         """Soft delete a user"""
-        user = self.get_user_by_id(user_id)
-        if not user:
-            return False
-        
         user.deleted_at = datetime.utcnow()
         user.status = UserStatusEnum.INACTIVE.value
         self.db.commit()
         return True
     
-    def restore_user(self, user_id: uuid.UUID) -> Optional[User]:
+    def restore_user(self, user: User) -> Optional[User]:
         """Restore a soft-deleted user"""
-        user = self.db.query(User).filter(User.id == user_id).first()
-        
         if not user or user.deleted_at is None:
             return None
-        
+            
         user.deleted_at = None
         user.status = UserStatusEnum.ACTIVE.value
         self.db.commit()
@@ -328,160 +247,62 @@ class UserService:
         user.last_activity_at = datetime.utcnow()
         self.db.commit()
         return True
-    
-    # ==================== PASSWORD MANAGEMENT ====================
-    
-    def change_password(self, user_id: uuid.UUID, password_data: UserPasswordChange) -> bool:
-        """Change user password"""
-        user = self.get_user_by_id(user_id)
-        if not user:
-            return False
-        
-        # Verify current password
-        if not self._verify_password(password_data.current_password, user.password_hash):
-            return False
 
-        # Check if the new password is the same as the old one
-        if password_data.current_password == password_data.new_password:
-            raise ValueError("New password cannot be the same as the old password")
-        
-        # Update password
-        user.password_hash = self._hash_password(password_data.new_password)
-        user.password_changed_at = datetime.utcnow()
-        self.db.commit()
-        return True
-    
-    def request_password_reset(self, email: str) -> Optional[str]:
-        """Request password reset and return reset token"""
-        user = self.get_user_by_email(email)
-        if not user:
-            return None
-        
-        # Generate reset token
-        reset_token = self._generate_token()
-        user.password_reset_token = reset_token
-        user.password_reset_token_expires = datetime.utcnow() + timedelta(hours=1)
-        
-        self.db.commit()
+    def get_user_social_accounts(self, user: User):
+        return user.social_accounts
 
-        try:
-            user_name = user.first_name or user.username or user.email.split('@')[0]
-            self._send_password_reset_email(
-                email=user.email,
-                token=reset_token,
-                user_name=user_name
-            )
-            print(f"✅ Password reset email sent to {user.email}")
-        except Exception as e:
-            print(f"❌ Failed to send password reset email to {user.email}: {e}")
-    
-        return reset_token
-    
-    def reset_password(self, reset_data: UserPasswordResetConfirm) -> bool:
-        """Reset password using reset token"""
-        user = self.db.query(User).filter(
-            and_(
-                User.password_reset_token == reset_data.token,
-                User.password_reset_token_expires > datetime.utcnow(),
-                User.deleted_at.is_(None)
-            )
-        ).first()
-        
+    def get_user_social_account(self, provider_id: str):
+        return self.db.query(UserSocialAccount).filter(UserSocialAccount.provider_id == provider_id).first()
+
+    def process_google_login(self, user_info: dict):
+
+        user = self.get_user_by_email(user_info['email'])
         if not user:
-            return False
-        
-        # Check if the new password is the same as the current one
-        if self._verify_password(reset_data.new_password, user.password_hash):
-            raise ValueError("New password cannot be the same as the old password")
-        
-        # Update password and clear reset token
-        user.password_hash = self._hash_password(reset_data.new_password)
-        user.password_reset_token = None
-        user.password_reset_token_expires = None
-        user.password_changed_at = datetime.utcnow()
-        
-        self.db.commit()
-        return True
-    
-    # ==================== EMAIL VERIFICATION ====================
-    
-    def verify_email(self, token: str) -> tuple[bool, Optional[User]]:
-        """Verify user email using verification token and return user if successful"""
-        user = self.db.query(User).filter(
-            and_(
-                User.email_verification_token == token,
-                User.email_verification_token_expires > datetime.utcnow(),
-                User.deleted_at.is_(None)
+            user = User(
+                email=user_info['email'],
+                full_name=user_info['name'],
+                first_name=user_info['given_name'],
+                last_name=user_info['family_name'],
+                profile_picture_url=user_info['picture'],
             )
-        ).first()
-        
-        if not user:
-            return False, None
-        
-        # Mark email as verified
-        user.email_verified = True
-        user.email_verified_at = datetime.utcnow()
-        user.email_verification_token = None
-        user.email_verification_token_expires = None
-        user.status = UserStatusEnum.ACTIVE.value
-        
-        self.db.commit()
-        
-        # Send welcome email asynchronously
-        try:
-            from services.email import EmailService
-            email_service = EmailService()
-            user_name = user.first_name or user.username or user.email.split('@')[0]
-            
-            asyncio.create_task(
-                email_service.send_welcome_email(
-                    email=user.email,
-                    user_name=user_name
-                )
+            self.create_user(user)
+        else:
+            user_update = UserUpdate(
+                full_name=user.full_name or user_info['name'] ,
+                first_name=user.first_name or user_info['given_name'] ,
+                last_name=user.last_name or user_info['family_name'] ,
+                profile_picture_url=user.profile_picture_url or user_info['picture'],
             )
-            print(f"✅ Welcome email sent to {user.email}")
-        except Exception as e:
-            print(f"⚠️ Warning: Failed to send welcome email to {user.email}: {e}")
-        
-        return True, user
-    
-    def resend_verification_email(self, email: str) -> Optional[str]:
-        """Resend email verification token"""
-        user = self.get_user_by_email(email)
-        if not user or user.email_verified:
-            return None
-        
-        # Generate new verification token
-        verification_token = self._generate_token()
-        user.email_verification_token = verification_token
-        user.email_verification_token_expires = datetime.utcnow() + timedelta(hours=24)
-        
-        self.db.commit()
-        
-        # Send verification email asynchronously
-        try:
-            from services.email import EmailService
-            email_service = EmailService()
-            user_name = user.first_name or user.username or user.email.split('@')[0]
-            
-            # Use the existing helper method which handles async properly
-            success = self._send_verification_email(
-                email=user.email,
-                token=verification_token,
-                user_name=user_name
+            self.update_user(user, user_update)
+
+        user_social_account = self.get_user_social_account(user_info['sub'])
+        if not user_social_account:
+            user_social_account = UserSocialAccount(
+                user_id=user.id,
+                provider=AuthProviderType.GOOGLE,
+                provider_id=user_info['sub'],
+                email=user_info['email'],
+                is_verified=user_info['email_verified'],
+                name=user_info['name'],
+                given_name=user_info['given_name'],
+                family_name=user_info['family_name'],
+                picture=user_info['picture'],
             )
+            self._create_user_social_account(user_social_account)
             
-            if success:
-                print(f"✅ Resent verification email to {user.email}")
-            else:
-                print(f"❌ Failed to resend verification email to {user.email}")
-                
-        except Exception as e:
-            print(f"⚠️ Warning: Failed to resend verification email to {user.email}: {e}")
-            print(f"   Error details: {type(e).__name__}: {str(e)}")
+        else:
+            user_social_account.update_last_used()
+            self.db.commit()
+
+
+        # Create new app access token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = self.token_service.create_access_token(
+            data={"sub": user_info['email']}, expires_delta=access_token_expires
+        )
+        refresh_token = self.token_service.create_refresh_token(data={"sub": user_info['email']})
+        return access_token, refresh_token
         
-        return verification_token
-    
     # ==================== STATISTICS AND ANALYTICS ====================
     
     def get_user_stats(self) -> Dict[str, int]:
@@ -554,79 +375,12 @@ class UserService:
             "account_age_days": days_since_registration
         }
     
-    # ==================== PRIVATE HELPER METHODS ====================
-    
-    def _hash_password(self, password: str) -> str:
-        """Hash password using bcrypt"""
-        salt = bcrypt.gensalt()
-        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
-    
-    def _verify_password(self, password: str, password_hash: str) -> bool:
-        """Verify password against hash"""
-        return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
-    
-    def _generate_token(self) -> str:
-        """Generate secure random token"""
-        return secrets.token_urlsafe(32)
 
-    async def _send_verification_email_async(self, email: str, user_name: str, token: str) -> bool:
-        """Send email verification email asynchronously"""
-        try:
-            from services.email import EmailService
-            email_service = EmailService()
-            return await email_service.send_verification_email(email, user_name, token)
-        except Exception as e:
-            print(f"Error sending verification email to {email}: {e}")
-            return False
-
-    def _send_verification_email(self, email: str, token: str, user_name: str = "User") -> bool:
-        """Send verification email (sync wrapper)"""
-        try:
-            # Run async function in background
-            asyncio.create_task(self._send_verification_email_async(email, user_name, token))
-            return True
-        except Exception as e:
-            print(f"Error scheduling verification email: {e}")
-            return False
-
-    async def _send_password_reset_email_async(self, email: str, user_name: str, token: str) -> bool:
-        """Send password reset email asynchronously"""
-        try:
-            from services.email import EmailService
-            email_service = EmailService()
-            return await email_service.send_password_reset_email(email, user_name, token)
-        except Exception as e:
-            print(f"Error sending password reset email to {email}: {e}")
-            return False
-
-    def _send_password_reset_email(self, email: str, token: str, user_name: str = "User") -> bool:
-        """Send password reset email (sync wrapper)"""
-        try:
-            asyncio.create_task(self._send_password_reset_email_async(email, user_name, token))
-            return True
-        except Exception as e:
-            print(f"Error scheduling password reset email: {e}")
-            return False
-
-    async def _send_welcome_email_async(self, email: str, user_name: str) -> bool:
-        """Send welcome email asynchronously"""
-        try:
-            from services.email import EmailService
-            email_service = EmailService()
-            return await email_service.send_welcome_email(email, user_name)
-        except Exception as e:
-            print(f"Error sending welcome email to {email}: {e}")
-            return False
-
-    def _send_welcome_email(self, user: User) -> bool:
-        """Send welcome email (sync wrapper)"""
-        try:
-            user_name = user.full_name or user.display_name or user.username or "User"
-            asyncio.create_task(self._send_welcome_email_async(user.email, user_name))
-            return True
-        except Exception as e:
-            print(f"Error scheduling welcome email: {e}")
-            return False
+    def _create_user_social_account(self, user_social_account: UserSocialAccount):
+        self.db.add(user_social_account)
+        self.db.commit()
+        self.db.refresh(user_social_account)
+        return user_social_account
 
 
 # ==================== DEPENDENCY INJECTION ====================

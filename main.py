@@ -4,7 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.travel_classifier_routes import travel_classifier_router
 from routes.document_analyzer_router import document_analyzer_router
 from routes.itinerary import itinerary_router
-from routes.user import router as auth_router, user_router
 from routes.transportation import transportation_router
 from routes.accommodations import accommodations_router
 from routes.traveler_test.traveler_type import router as traveler_type_router
@@ -13,8 +12,10 @@ from routes.traveler_test.question import router as question_router
 from routes.traveler_test.question_option import router as question_option_router
 from routes.traveler_test.question_option_score import router as question_option_score_router
 from routes.traveler_test.user_answers import router as user_answers_router
+from routes.auth_routes import auth_router
+from routes.user import user_router
 from database import engine
-from dependencies import get_db
+from database import get_db
 from models.itinerary import Base as ItineraryBase
 from models.user import Base as UserBase
 from models.traveler_test.traveler_type import Base as TravelerTypeBase
@@ -23,6 +24,8 @@ from models.traveler_test.question_option import Base as QuestionOptionBase
 from models.traveler_test.question_option_score import Base as QuestionOptionScoreBase
 from models.traveler_test.user_answers import Base as UserAnswersBase
 from models.traveler_test.user_traveler_test import Base as UserTravelerTestBase
+from starlette.middleware.sessions import SessionMiddleware
+import os
 
 import uvicorn
 
@@ -40,6 +43,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY"))
 
 # Create database tables
 ItineraryBase.metadata.create_all(bind=engine)

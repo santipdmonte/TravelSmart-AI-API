@@ -4,7 +4,7 @@ from sqlalchemy import and_, or_, func
 from fastapi import Depends
 from models.traveler_test.traveler_type import TravelerType
 from schemas.traveler_test.traveler_type import TravelerTypeCreate, TravelerTypeUpdate
-from dependencies import get_db
+from database import get_db
 from typing import List, Optional
 from datetime import datetime
 import uuid

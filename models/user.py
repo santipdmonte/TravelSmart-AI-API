@@ -1,11 +1,14 @@
 from sqlalchemy import Column, Integer, String, Text, Float, Date, DateTime, Boolean, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timezone
 import enum
 import uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
+from sqlalchemy import UniqueConstraint, Index
+from typing import Optional
+
 
 class UserStatusEnum(enum.Enum):
     ACTIVE = "active"
@@ -13,13 +16,11 @@ class UserStatusEnum(enum.Enum):
     SUSPENDED = "suspended"
     PENDING_VERIFICATION = "pending_verification"
 
-
 class UserRoleEnum(enum.Enum):
     USER = "user"
     PREMIUM = "premium"
     ADMIN = "admin"
     MODERATOR = "moderator"
-
 
 class CurrencyEnum(enum.Enum):
     USD = "USD"
@@ -33,7 +34,6 @@ class CurrencyEnum(enum.Enum):
     INR = "INR"
     BRL = "BRL"
 
-
 class TravelStyleEnum(enum.Enum):
     BUDGET = "budget"
     MID_RANGE = "mid_range"
@@ -45,6 +45,12 @@ class TravelStyleEnum(enum.Enum):
     COUPLE = "couple"
     GROUP = "group"
 
+class AuthProviderType(str, enum.Enum):
+    """Tipos de proveedores de autenticación."""
+    EMAIL = "email"
+    GOOGLE = "google"
+    # ... More providers can be added here
+
 
 class User(Base):
     __tablename__ = "users"
@@ -54,13 +60,11 @@ class User(Base):
     
     # Authentication fields
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    username: Mapped[str] = mapped_column(String(50), nullable=True, unique=True, index=True)
     
     # Basic profile information
     first_name: Mapped[str] = mapped_column(String(100), nullable=True)
     last_name: Mapped[str] = mapped_column(String(100), nullable=True)
-    display_name: Mapped[str] = mapped_column(String(150), nullable=True)
+    full_name: Mapped[str] = mapped_column(String(255), nullable=True)
     
     # Profile details
     profile_picture_url: Mapped[str] = mapped_column(String(500), nullable=True)
@@ -74,7 +78,7 @@ class User(Base):
     timezone: Mapped[str] = mapped_column(String(50), nullable=True, default="UTC")
     
     # Account status and role
-    status: Mapped[str] = mapped_column(String(30), nullable=False, default=UserStatusEnum.PENDING_VERIFICATION.value)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default=UserStatusEnum.ACTIVE.value)
     role: Mapped[str] = mapped_column(String(20), nullable=False, default=UserRoleEnum.USER.value)
     
     # Email verification
@@ -168,6 +172,14 @@ class User(Base):
     last_user_agent: Mapped[str] = mapped_column(Text, nullable=True)
     preferred_language: Mapped[str] = mapped_column(String(10), nullable=True, default="en")
 
+    # Social accounts
+    social_accounts: Mapped[list["UserSocialAccount"]] = relationship(
+        "UserSocialAccount",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    ) 
+
     # Traveler profile
     traveler_type_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -178,17 +190,11 @@ class User(Base):
     traveler_type = relationship("TravelerType", back_populates="users", passive_deletes=True)
     
     def __str__(self):
-        return self.display_name or self.username or self.email
+        return self.email
 
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', status='{self.status}')>"
     
-    @property
-    def full_name(self):
-        """Returns the full name of the user"""
-        if self.first_name is not None and self.last_name is not None:
-            return f"{self.first_name} {self.last_name}"
-        return self.first_name or self.last_name or self.display_name or self.username
     
     @property
     def is_premium(self):
@@ -221,5 +227,58 @@ class User(Base):
         if self.last_login_at is not None:
             return (datetime.utcnow() - self.last_login_at.replace(tzinfo=None)).days
         return None
+
+
+class UserSocialAccount(Base):
+    """Identidades de autenticación de usuarios (emails, OAuth accounts)."""
+    
+    __tablename__ = "user_social_accounts"
+    
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    
+    provider: Mapped[AuthProviderType] = mapped_column(String(20), nullable=False)
+    provider_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    given_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    family_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    picture: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), 
+        server_default=func.now(),
+        nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+    last_used: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
+    
+    user: Mapped["User"] = relationship("User", back_populates="social_accounts")
+
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_id", name="uq_provider_social_account"),
+        Index("idx_provider_lookup", "provider", "provider_id"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<UserSocialAccount(provider='{self.provider}', provider_id='{self.provider_id}')>"
+
+    def mark_as_verified(self) -> None:
+        """Marcar identidad como verificada."""
+        self.is_verified = True
+
+    def update_last_used(self) -> None:
+        """Actualizar último uso."""
+        self.last_used = datetime.now(timezone.utc)
     
 
