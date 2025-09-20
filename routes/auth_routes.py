@@ -44,7 +44,7 @@ async def login_via_email(
     return {"message": "Verification code sent", "email": email}
 
 
-@auth_router.get("/verify-token/")
+@auth_router.get("/email/verify-token/")
 async def verify_email_token(token: str, token_service: JWTService = Depends(get_token_service)):
     payload = token_service.validate_email_verified_token(token)
     if not payload:
