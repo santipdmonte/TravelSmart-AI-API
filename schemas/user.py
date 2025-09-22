@@ -12,6 +12,7 @@ class UserBase(BaseModel):
     first_name: Optional[str] = Field(None, max_length=100, description="User's first name")
     last_name: Optional[str] = Field(None, max_length=100, description="User's last name")
     full_name: Optional[str] = Field(None, max_length=255, description="User's full name")
+    username: Optional[str] = Field(None, max_length=50, description="User's username")
     display_name: Optional[str] = Field(None, max_length=150, description="Display name for the user")
     bio: Optional[str] = Field(None, max_length=500, description="User biography")
     date_of_birth: Optional[date] = Field(None, description="User's date of birth")
@@ -40,7 +41,7 @@ class UserBase(BaseModel):
 
 class UserUpdate(BaseModel):
     """Schema for updating an existing user"""
-    username: Optional[str] = Field(None, min_length=3, max_length=50, description="Unique username")
+    username: Optional[str] = Field(None, max_length=50, description="User's username")
     first_name: Optional[str] = Field(None, max_length=100, description="User's first name")
     last_name: Optional[str] = Field(None, max_length=100, description="User's last name")
     display_name: Optional[str] = Field(None, max_length=150, description="Display name for the user")
