@@ -30,6 +30,7 @@ class UserBase(BaseModel):
     measurement_system: str = Field("metric", description="Preferred measurement system")
     preferred_language: str = Field("en", max_length=10, description="User's preferred language")
     profile_picture_url: Optional[str] = Field(None, description="User's profile picture URL")
+    visited_countries: Optional[List[str]] = Field(None, description="List of country codes visited")
     
     class Config:
         use_enum_values = True
@@ -91,6 +92,7 @@ class UserResponse(UserBase):
     updated_at: datetime = Field(..., description="Last update timestamp")
     traveler_type_id: Optional[uuid.UUID] = Field(None, description="Current traveler type profile for this user")
     default_travel_styles: Optional[List[str]] = Field(None, description="Derived default travel styles based on traveler type")
+    visited_countries: Optional[List[str]] = Field(None, description="List of country codes visited")
     
     class Config:
         from_attributes = True  # Enable ORM mode for SQLAlchemy compatibility (Pydantic V2)
@@ -142,52 +144,6 @@ class UserList(BaseModel):
         }
 
 
-class UserPasswordChange(BaseModel):
-    """Schema for changing user password"""
-    current_password: str = Field(..., description="Current password")
-    new_password: str = Field(..., min_length=8, description="New password")
-    
-    @validator('new_password')
-    def validate_new_password(cls, v):
-        if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
-        if not any(c.isupper() for c in v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not any(c.islower() for c in v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not any(c.isdigit() for c in v):
-            raise ValueError('Password must contain at least one digit')
-        return v
-
-
-class UserPasswordReset(BaseModel):
-    """Schema for password reset request"""
-    email: EmailStr = Field(..., description="User's email address")
-
-
-class UserPasswordResetConfirm(BaseModel):
-    """Schema for confirming password reset"""
-    token: str = Field(..., description="Password reset token")
-    new_password: str = Field(..., min_length=8, description="New password")
-    
-    @validator('new_password')
-    def validate_new_password(cls, v):
-        if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
-        if not any(c.isupper() for c in v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not any(c.islower() for c in v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not any(c.isdigit() for c in v):
-            raise ValueError('Password must contain at least one digit')
-        return v
-
-
-class UserEmailVerification(BaseModel):
-    """Schema for email verification"""
-    token: str = Field(..., description="Email verification token")
-
-
 class UserStats(BaseModel):
     """Schema for user statistics"""
     total_users: int = Field(..., description="Total number of users")
@@ -210,20 +166,6 @@ class UserPreferences(BaseModel):
         json_encoders = {
             datetime: lambda v: v.isoformat() if v else None
         }
-
-
-class EmailVerificationResponse(BaseModel):
-    """Response model for email verification"""
-    message: str
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int
-    user: UserResponse
-
-class ResendVerificationResponse(BaseModel):
-    """Response model for resend verification"""
-    message: str
 
 
 class UserWithTravelerProfile(BaseModel):
