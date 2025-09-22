@@ -32,6 +32,7 @@ class TokenPair(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
+    expires_in: int
 
 
 bearer_scheme = HTTPBearer(
@@ -90,7 +91,8 @@ class JWTService:
         expire = datetime.now(timezone.utc) + exp_delta
         jti = uuid.uuid4().hex
         to_encode.update({"exp": expire, "type": token_type, "jti": jti})
-        return to_encode
+        expires_in = exp_delta.total_seconds()
+        return to_encode, expires_in
 
 
     # ==================== TOKEN CREATION ====================
@@ -98,28 +100,28 @@ class JWTService:
     def create_access_token(self, data: dict, expires_delta: Optional[timedelta] = None) -> str:
         if expires_delta is None:
             expires_delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        to_encode = self._with_standard_claims(data, token_type="access", exp_delta=expires_delta)
-        return jwt.encode(to_encode, self.sercret, algorithm=self.algorithm)
+        to_encode, expires_in = self._with_standard_claims(data, token_type="access", exp_delta=expires_delta)
+        return jwt.encode(to_encode, self.sercret, algorithm=self.algorithm), expires_in
 
 
     def create_refresh_token(self, data: dict, expires_delta: Optional[timedelta] = None) -> str:
         if expires_delta is None:
             expires_delta = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-        to_encode = self._with_standard_claims(data, token_type="refresh", exp_delta=expires_delta)
+        to_encode, _ = self._with_standard_claims(data, token_type="refresh", exp_delta=expires_delta)
         return jwt.encode(to_encode, self.sercret, algorithm=self.algorithm)
 
 
     def create_email_verification_token(self, data: dict, expires_delta: Optional[timedelta] = None) -> str:
         if expires_delta is None:
             expires_delta = timedelta(minutes=EMAIL_TOKEN_EXPIRE_MINUTES)
-        to_encode = self._with_standard_claims(data, token_type="email_verified", exp_delta=expires_delta)
+        to_encode, _ = self._with_standard_claims(data, token_type="email_verified", exp_delta=expires_delta)
         return jwt.encode(to_encode, self.sercret, algorithm=self.algorithm)
 
 
     def create_google_verification_token(self, data: dict, expires_delta: Optional[timedelta] = None) -> str:
         if expires_delta is None:
             expires_delta = timedelta(minutes=GOOGLE_TOKEN_EXPIRE_MINUTES)
-        to_encode = self._with_standard_claims(data, token_type="google_verified", exp_delta=expires_delta)
+        to_encode, _ = self._with_standard_claims(data, token_type="google_verified", exp_delta=expires_delta)
         return jwt.encode(to_encode, self.sercret, algorithm=self.algorithm)
 
 

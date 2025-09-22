@@ -60,9 +60,9 @@ async def verify_email_token(token: str, token_service: JWTService = Depends(get
 
     email = payload.get("sub")
     data = {"sub": email}
-    access_token = token_service.create_access_token(data=data)
+    access_token, expires_in = token_service.create_access_token(data=data)
     refresh_token = token_service.create_refresh_token(data=data)
-    return TokenPair(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
+    return TokenPair(access_token=access_token, refresh_token=refresh_token, token_type="bearer", expires_in=expires_in)
 
 
 @auth_router.post("/refresh-token")
@@ -88,10 +88,10 @@ async def refresh_tokens(
         reason="rotated",
     )
 
-    access_token = token_service.create_access_token(data={"sub": user.email})
+    access_token, expires_in = token_service.create_access_token(data={"sub": user.email})
     new_refresh_token = token_service.create_refresh_token(data={"sub": user.email})
 
-    return TokenPair(access_token=access_token, refresh_token=new_refresh_token, token_type="bearer")
+    return TokenPair(access_token=access_token, refresh_token=new_refresh_token, token_type="bearer", expires_in=expires_in)
 
 
 @auth_router.post("/logout")
@@ -180,7 +180,7 @@ async def verify_google_token(token: str, token_service: JWTService = Depends(ge
 
     email = payload.get("sub")
     data = {"sub": email}
-    access_token = token_service.create_access_token(data=data)
+    access_token, expires_in = token_service.create_access_token(data=data)
     refresh_token = token_service.create_refresh_token(data=data)
-    return TokenPair(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
+    return TokenPair(access_token=access_token, refresh_token=refresh_token, token_type="bearer", expires_in=expires_in)
 
