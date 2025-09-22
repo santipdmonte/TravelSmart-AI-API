@@ -71,6 +71,7 @@ class User(Base):
     bio: Mapped[str] = mapped_column(Text, nullable=True)
     date_of_birth: Mapped[Date] = mapped_column(Date, nullable=True)
     phone_number: Mapped[str] = mapped_column(String(20), nullable=True)
+    visited_countries: Mapped[JSON] = mapped_column(JSON, nullable=True)
     
     # Location information
     country: Mapped[str] = mapped_column(String(100), nullable=True)
