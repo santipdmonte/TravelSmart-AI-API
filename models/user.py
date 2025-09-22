@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, Float, Date, DateTime, Boolean, JSON, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.sql import func
 from datetime import datetime, date, timezone
 import enum
@@ -7,7 +7,7 @@ import uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 from sqlalchemy import UniqueConstraint, Index
-from typing import Optional
+from typing import Optional, List
 
 
 class UserStatusEnum(enum.Enum):
@@ -71,7 +71,7 @@ class User(Base):
     bio: Mapped[str] = mapped_column(Text, nullable=True)
     date_of_birth: Mapped[Date] = mapped_column(Date, nullable=True)
     phone_number: Mapped[str] = mapped_column(String(20), nullable=True)
-    visited_countries: Mapped[JSON] = mapped_column(JSON, nullable=True)
+    visited_countries: Mapped[List[str]] = mapped_column(ARRAY(Text), nullable=True)
     
     # Location information
     country: Mapped[str] = mapped_column(String(100), nullable=True)

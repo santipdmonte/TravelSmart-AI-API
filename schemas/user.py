@@ -62,6 +62,7 @@ class UserUpdate(BaseModel):
     preferred_language: Optional[str] = Field(None, max_length=10, description="User's preferred language")
     traveler_type_id: Optional[uuid.UUID] = Field(None, description="Current traveler type profile for this user")
     profile_picture_url: Optional[str] = Field(None, description="User's profile picture URL")
+    visited_countries: Optional[List[str]] = Field(None, description="List of country codes visited")
     
     class Config:
         use_enum_values = True
