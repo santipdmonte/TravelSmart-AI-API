@@ -65,7 +65,7 @@ async def verify_email_token(token: str, token_service: JWTService = Depends(get
     return TokenPair(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
 
-@auth_router.post("/refresh")
+@auth_router.post("/refresh-token")
 async def refresh_tokens(
     refresh_token: str,
     user_service: UserService = Depends(get_user_service),
