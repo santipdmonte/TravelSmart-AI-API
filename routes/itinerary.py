@@ -310,18 +310,12 @@ def generate_activities_city(
         "messages": [{"role": "user", "content": input_message}],
     }
 
-    # state = activities_city_agent.invoke(state, config)
-    # itinerary = state["messages"][-1].content
+    state = activities_city_agent.invoke(state, config)
+    itinerary = state["messages"][-1].content
 
-    # # Guardar el resultado en un .md
-    # url = f"examples/activities_city_{city}_{days}_{config['configurable']['thread_id']}.md"
-    # with open(url, "w") as f:
-    #     f.write(itinerary)
-
-    itinerary = open(f"examples/activities_city_Miami_4_bd881ed1-1792-4ffc-9c25-0e44539261c9.md", "r").read()
-
-    model = ChatOpenAI(model="gpt-5-mini")
-    feedback = model.invoke(f"Ere un experto en planficacion de viajes. Debes dar feedback sobre el siguiente itinerario de viaje: {itinerary}")
-    return feedback.content
+    # Guardar el resultado en un .md
+    url = f"examples/activities_city_{city}_{days}_{config['configurable']['thread_id']}.md"
+    with open(url, "w") as f:
+        f.write(itinerary)
 
     return {"content": itinerary}

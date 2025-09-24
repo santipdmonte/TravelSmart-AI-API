@@ -81,36 +81,6 @@ La temporada del viaje es en verano.
 
 # ==== Tools ====
 
-# def web_search(
-#     query: str
-# ) -> str:
-#     """
-#     Search the web for the query.
-#     """
-
-
-#     tavily_response = TavilySearch(
-#         max_results=3,
-#         topic="general",
-#         # include_answer=False,
-#         # include_raw_content=False,
-#         # include_images=False,
-#         # include_image_descriptions=False,
-#         # search_depth="basic",
-#         # time_range="day",
-#         # include_domains=None,
-#         # exclude_domains=None
-#     )
-
-#     response_prompt = f"""
-#     Eres un experto en turismo y busacar informacion relevante en internet. 
-#     En base a la query {query}, debes responder de forma resumida y relevante sobre esta busqueda: {tavily_response}
-#     """
-
-#     response = model.invoke(response_prompt)
-
-#     return tavily_response.invoke(query)
-
 web_search = TavilySearch(
         max_results=3,
         topic="general",
