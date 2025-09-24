@@ -25,7 +25,7 @@ from langgraph.types import interrupt
 
 # Define model and checkpointer
 model = ChatOpenAI(model="gpt-5-mini")
-web_search_model = "gpt-5"
+web_search_model = "gpt-5-mini"
 checkpointer = MemorySaver()
 
 # ==== Custom state ====
