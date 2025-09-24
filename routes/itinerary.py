@@ -286,7 +286,9 @@ def generate_route(
     return state
 
 
-from graphs.activities_city import generate_activities_city_ai
+from graphs.activities_city import activities_city_agent
+import uuid
+from langchain_openai import ChatOpenAI
 
 @itinerary_router.post("/activities/city")
 def generate_activities_city(
@@ -294,5 +296,32 @@ def generate_activities_city(
     days: int,
 ):
     """Generate activities for a city"""
-    state = generate_activities_city_ai(city, days)
-    return state
+
+    input_message = "Ayudame a crear mi itinerario de viaje"
+
+    config = {
+        "configurable": {
+            "thread_id": str(uuid.uuid4()),
+        }
+    }
+    state = {
+        "city": city,
+        "days": days,
+        "messages": [{"role": "user", "content": input_message}],
+    }
+
+    # state = activities_city_agent.invoke(state, config)
+    # itinerary = state["messages"][-1].content
+
+    # # Guardar el resultado en un .md
+    # url = f"examples/activities_city_{city}_{days}_{config['configurable']['thread_id']}.md"
+    # with open(url, "w") as f:
+    #     f.write(itinerary)
+
+    itinerary = open(f"examples/activities_city_Miami_4_bd881ed1-1792-4ffc-9c25-0e44539261c9.md", "r").read()
+
+    model = ChatOpenAI(model="gpt-5-mini")
+    feedback = model.invoke(f"Ere un experto en planficacion de viajes. Debes dar feedback sobre el siguiente itinerario de viaje: {itinerary}")
+    return feedback.content
+
+    return {"content": itinerary}
