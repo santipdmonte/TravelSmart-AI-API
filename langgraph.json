@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "agent": "./graphs/activities_city_v2.py:graph"
+  },
+  "env": ".env"
+}

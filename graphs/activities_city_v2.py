@@ -1,11 +1,13 @@
 from typing import Annotated
+import uuid
 
 from typing_extensions import TypedDict
 
 from langgraph.graph import StateGraph, START, END
+from langchain_core.messages import SystemMessage, AnyMessage
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
-from langchain_tavily import TavilySearch
+from langchain_community.tools import TavilySearchResults
 from langgraph.checkpoint.memory import InMemorySaver
 
 from dotenv import load_dotenv
@@ -15,13 +17,13 @@ from langchain.chat_models import init_chat_model
 
 
 class State(TypedDict):
-    feedback: str | None = None
     city: str
     days: int
-    tmp_itinerary: str
-    final_itinerary: str
-    tool_calling: bool
-    messages: Annotated[list, add_messages]
+    feedback: str | None = None
+    tmp_itinerary: str | None = None
+    final_itinerary: str | None = None
+    tool_calling: bool = False
+    messages: Annotated[list[AnyMessage], add_messages]
 
 
 # ## 1) Datos necesarios (Rellenar antes de la corrección)
@@ -36,11 +38,11 @@ class State(TypedDict):
 
 OUTPUT_TEMPLATE = """
 
-<template de formato del output>
+Respetar el siguiente formato de salida (mencionado entre <output_template> y </output_template>):
 
-Dia X 
-- Llegada / salida: (hora) — (vuelos/trenes/buses)
-- Alojamiento: (hotel/Airbnb — dirección — check-in/out)
+<output_template>
+
+Dia X: <breve resumen del dia>
 - Mañana:
   - Actividad 1: [Nombre o enlace]  
     - Horario: (hora apertura / cierre / hora prevista)  
@@ -48,7 +50,7 @@ Dia X
     - Duración estimada: (min / h)  
     - Reserva: (link de reserva o "no requiere")  
     - Ubicación: (dirección / barrio)  
-    - Transporte recomendado desde alojamiento / actividad anterior: (tiempo estimado / medio)
+    - Transporte recomendado desde zona centro o turistica / actividad anterior: (tiempo estimado / medio)
   - Actividad 2: [Nombre o enlace]  
     - (mismos subcampos)
 - Tarde:
@@ -73,16 +75,18 @@ Dia X
 - Recomendaciones de transporte local (p. ej. tarjetas de metro, apps útiles)
 - Recomendaciones generales del destino (seguridad, salud, horarios locales)
 
-</template de formato del output>
+</output_template>
 
 """
 
-def get_itinerary_prompt(state: State):
-    return f"""
-    <historial>
-    {state["messages"]}
-    </historial>
+ADITIONAL_CONTEXT = """
+El viajero es de tipo aventurero y le gusta realizar actividades al aire libre.
+En esta ocacion el viajero esta realizando un viaje con su grupo de amigos (23 años).
+La temporada del viaje es en verano.
+"""
 
+def get_itinerary_prompt(state: State):
+    return [SystemMessage(content=f"""
 Eres un asistente de viajes con 15 años de experiencia que ayuda a los usuarios a planificar las actividades que pueden realizar en su viaje. 
 Tu objetivo es generar un itinerario detallado de actividades para realizar en {state["city"]} durante {state["days"]} dias.
 
@@ -105,18 +109,22 @@ Planifica las busuqedas en internet que debes hacer y realiza todas las llamadas
 
 Utiliza un lenguaje neutro o latinoamericano. La respuesta en formato markdown.
 Responder unicamente con el itinerario detallado, no incluyas ningun otro texto adicional.
+Tu respuesta sera utilizada directamente en el itinerario final de viaje.
 
-El viajero es de tipo aventurero y le gusta realizar actividades al aire libre.
-En esta ocacion el viajero esta realizando un viaje con su grupo de amigos (23 años).
-La temporada del viaje es en verano.
+{ADITIONAL_CONTEXT}
 
 {OUTPUT_TEMPLATE}
-"""
+""")]
 
 def get_feedback_fixer_prompt(state: State):
-    return f"""
+    return [SystemMessage(content=f"""
 Eres un experto en planificacion de viajes, el encargado de ajustar el itinerario de viaje en base al feedback de tu supervisor.
-Feedback del supervisor: {state["feedback"]}
+Feedback del supervisor: 
+
+<feedback>
+{state["feedback"]}
+</feedback>
+
 Ajusta el itinerario de viaje en base al feedback del supervisor.
 Mantene el formato del itinerario de viaje. Ajustar unicamente los puntos que el supervisor te indique. Mantener links de las actividades.
 
@@ -134,25 +142,35 @@ Realiza una planificacion alternativa para un dia en el caso de lluvia.
 Fuera de la planificacion diaria, mencionar otras actividades interesantes que no se inlcuyeron en la planificacion.
 
 El itinerario debe mantener exactamente el mismo formato, modificando unicamente los puntos que el supervisor te indique.
-No agregues ningun otro texto adicional. Tu respuesta sera utilizada directamente en el itinerario de viaje.
+No agregues ningun otro texto adicional. Tu respuesta sera utilizada directamente en el itinerario final de viaje.
 Responde en formato markdown.
 
 <Itinerario de viaje>
-{state["messages"][-1].content}
+{state["tmp_itinerary"]}
 </Itinerario de viaje>
 
 
 {OUTPUT_TEMPLATE}
-"""
+""")]
 
 def get_feedback_provider_prompt(itinerary: str):
-    return f"""
+    return [SystemMessage(content=f"""
     Eres un experto en planificacion de viajes, el encargado de proporcionar feedback sobre el itinerario de viaje.
-    Itinerario de viaje: 
+    Considera el contexto adicional:
+    {ADITIONAL_CONTEXT}
+
+    <Itinerario de viaje>
     {itinerary}
+    </Itinerario de viaje>
+
     Provee feedback sobre el itinerario de viaje.
-    Mantene el formato del itinerario de viaje.
-    """
+    El feedback se debe enfocar en las cosas a ajustar en el itinerario.
+    El feedback debe ser puntual y específico. Las cosas que no sean relevantes para el itinerario no las menciones.
+    Mencionar unicamente los cambios sugeridos. Las cosas que esten bien del itinerario no las menciones.
+    Si consideras que el itinerario es perfecto, no sugieras cambios.
+    Si unicamente econtras 1 cosa a mejorar, sugeri solo ese cambio.
+    Evita hacer sugerencias innecesarias.
+    """)]
 
 
 # Nodes
@@ -167,9 +185,13 @@ def web_search_planner(state: State):
 
 def initial_itinerary_agent(state: State):
     print("\n\ninitial_itinerary_agent\n\n")
+    thread_id = config["configurable"]["thread_id"]
 
-    response = llm.invoke(get_itinerary_prompt(state))
-    with open(f"../examples/activities_city_{state['city']}_{state['days']}_{config['configurable']['thread_id']}_tmp.md", "w") as f:
+    response = llm.invoke(get_itinerary_prompt(state) + state["messages"])
+
+    city = state["city"]
+    days = state["days"]
+    with open(f"../examples/activities_city_{city}_{days}_{thread_id}_tmp.md", "w") as f:
         f.write(response.content)
 
     return {"messages": [response], "tmp_itinerary": response.content}
@@ -178,7 +200,10 @@ def initial_itinerary_agent(state: State):
 def feedback_provider_agent(state: State):
     print("\n\nfeedback_provider_agent\n\n")
     response = llm.invoke(get_feedback_provider_prompt(state["tmp_itinerary"]))
-    with open(f"../examples/activities_city_{state['city']}_{state['days']}_{config['configurable']['thread_id']}_final.md", "w") as f:
+    city = state["city"]
+    days = state["days"]
+    thread_id = config["configurable"]["thread_id"]
+    with open(f"../examples/activities_city_{city}_{days}_{thread_id}_feedback.md", "w") as f:
         f.write(response.content)
 
     return {"messages": [response], "feedback": response.content}
@@ -187,7 +212,10 @@ def feedback_provider_agent(state: State):
 def feedback_fixer_agent(state: State):
     print("\n\nfeedback_fixer_agent\n\n")
     response = llm.invoke(get_feedback_fixer_prompt(state))
-    with open(f"../examples/activities_city_{state['city']}_{state['days']}_{config['configurable']['thread_id']}_final.md", "w") as f:
+    city = state["city"]
+    days = state["days"]
+    thread_id = config["configurable"]["thread_id"]
+    with open(f"../examples/activities_city_{city}_{days}_{thread_id}_final.md", "w") as f:
         f.write(response.content)
 
     return {"messages": [response], "final_itinerary": response.content}
@@ -229,8 +257,8 @@ def feedback_fixer_agent(state: State):
 
 
 # Tools
-web_search = TavilySearch(
-        max_results=3,
+web_search = TavilySearchResults(
+        max_results=2,
         topic="general",
         # include_answer=False,
         # include_raw_content=False,
@@ -266,18 +294,19 @@ llm = init_chat_model("openai:gpt-5-mini")
 llm_with_tools = llm.bind_tools(tools)
 memory = InMemorySaver()
 
-graph = graph_builder.compile(checkpointer=memory)
+# graph = graph_builder.compile(checkpointer=memory)
+graph = graph_builder.compile()
 
 
 state = {
     "feedback": None,
-    "city": "Miami",
+    "city": "Amsterdam",
     "days": 3
 }
 
-config = {"configurable": {"thread_id": "123"}}
+config = {"configurable": {"thread_id": str(uuid.uuid4())}}
 
-print(graph.invoke(state, config))
+# print(graph.invoke(state, config))
 
 
 # def stream_graph_updates(user_input: str):
