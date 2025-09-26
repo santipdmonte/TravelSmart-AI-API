@@ -4,7 +4,7 @@ import uuid
 from typing_extensions import TypedDict
 
 from langgraph.graph import StateGraph, START, END
-from langchain_core.messages import SystemMessage, AnyMessage
+from langchain_core.messages import SystemMessage, AnyMessage, ToolMessage
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 from langchain_community.tools import TavilySearchResults
@@ -257,18 +257,40 @@ def feedback_fixer_agent(state: State):
 
 
 # Tools
-web_search = TavilySearchResults(
+# web_search = TavilySearchResults(
+#         max_results=2,
+#         topic="general",
+#         # include_answer=False,
+#         # include_raw_content=False,
+#         # include_images=False,
+#         # include_image_descriptions=False,
+#         # search_depth="basic",
+#         # time_range="day",
+#         # include_domains=None,
+#         # exclude_domains=None
+#     )
+
+def web_search(query: str):
+    """
+    Search the web for the query.
+    """
+
+    # Search
+    tavily_search = TavilySearchResults(
         max_results=2,
         topic="general",
-        # include_answer=False,
-        # include_raw_content=False,
-        # include_images=False,
-        # include_image_descriptions=False,
-        # search_depth="basic",
-        # time_range="day",
-        # include_domains=None,
-        # exclude_domains=None
     )
+    search_results = tavily_search.invoke(query)
+
+    # Format
+    formatted_results = "\n\n -- \n\n".join(
+        [
+            f"<Document href='{doc['url']}'/>\n{doc['content']}</Document>" 
+            for doc in search_results
+        ]
+    )
+
+    return {"messages": [ToolMessage(content=formatted_results)]}
 
 #  Nodes
 tools = [web_search]
