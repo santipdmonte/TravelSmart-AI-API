@@ -44,107 +44,139 @@ class State(TypedDict):
 
 OUTPUT_TEMPLATE = """
 
-Respetar el siguiente formato de salida (mencionado entre <output_template> y </output_template>):
+### Formato de salida por día
 
-<output_template>
+**Día X – Breve resumen del día**  
 
-Dia X: <breve resumen del dia>
-- Mañana:
-  - Actividad 1: [Nombre o enlace]  
-    - Horario: (hora apertura / cierre / hora prevista)  
-    - Precio: (entrada / descuentos / gratuidades)  
-    - Duración estimada: (min / h)  
-    - Reserva: (link de reserva o "no requiere")  
-    - Ubicación: (dirección / barrio)  
-    - Transporte recomendado desde zona centro o turistica / actividad anterior: (tiempo estimado / medio)
-  - Actividad 2: [Nombre o enlace]  
-    - (mismos subcampos)
-- Tarde:
-  - Actividad 3: [Nombre o enlace]  
-    - (mismos subcampos)
-  - Actividad 4: [Nombre o enlace]  
-    - (mismos subcampos)
-- Noche:
-  - Actividad 5: [Nombre o enlace] (cena / evento)  
-    - (mismos subcampos)
-- Notas del día (reservas realizadas, tiempos de buffer, conexiones): (texto)
+- **Mañana**  
+  - *Actividad [Nombre o enlace]:
+    - Descripción: breve descripción de la actividad  
+    - Horarios: apertura/cierre o mejor rango del día (si aplica)
+    - Precio: (aproximado / descuentos / gratuidades) (si aplica)
+    - Duración sugerida: (ej. 1–2h / medio día / día completo)  
+    - Reserva: (link de reserva o “no requiere”)  
+    - Ubicación: (dirección / barrio / zona)  
+    - Transporte recomendado: (tiempo estimado / medio desde centro o actividad previa)  
 
-(Repetir bloque para cada día del viaje)
+- **Tarde**  
+  - *Actividad 2*: [Nombre o enlace]  
+    - (mismos subcampos)  
 
-----
+- **Noche**  
+  - *Actividad 3* (cena / espectáculo / paseo nocturno)  
+    - (mismos subcampos)  
 
-- Plan alternativo por lluvia:
-  - Actividad A (interior): [Nombre / enlace]  
-    - Horario / Precio / Reserva
-  - Actividad B (interior): ...
-- Otras actividades interesantes no incluidas en el plan original
-- Recomendaciones de transporte local (p. ej. tarjetas de metro, apps útiles)
-- Recomendaciones generales del destino (seguridad, salud, horarios locales)
+- **Notas del día**: tips extra (p. ej. dejar margen entre actividades, recomendaciones de comida local, recordatorio de reservas).  
 
-</output_template>
+---
+
+### Extras fuera del itinerario
+- Otras actividades interesantes no incluidas
+- Recomendaciones prácticas y consejos útiles (transporte local, seguridad, apps, costumbres)
 
 """
 
-ADITIONAL_CONTEXT = """
-El viajero es de tipo aventurero y le gusta realizar actividades al aire libre.
-En esta ocacion el viajero esta realizando un viaje con su grupo de amigos (23 años).
+ADDITIONAL_CONTEXT = """
+El viaje sera realizado por una familia de 4 personas con 2 hijos de 20 y 22 años.
+Su objetivo de viaje es conocer los lugares mas turisicos de la ciudad.
 La temporada del viaje es en verano.
+Para este viaje quieren tener un ritmo dinamico.
 """
 
 def get_itinerary_prompt(state: State):
     return [SystemMessage(content=f"""
-Eres un asistente de viajes con 15 años de experiencia que ayuda a los usuarios a planificar las actividades que pueden realizar en su viaje. 
-Tu objetivo es generar un itinerario detallado de actividades para realizar en {state["city"]} durante {state["days"]} dias.
+<System>
+Rol: Experto en planificacion de viajes y guia de viajes.
+</System>
 
-Considera que el primer dia el viajero llega a la ciudad, por lo que tendra menos tiempo para realizar actividades.
-Realiza un itinerario detallado para cada dia. 
-Separa las actividades segun el momento del dia (mañana, tarde, noche, tarde-noche, etc.) recomendado para cada actividad.
-Para cada actividad sugerida considera los horarios e info adicional (precios, duracion, reserva si corresonde con la actividad).
-Considera la ubicacion de las actividades y el desplazamiento entre ellas. Intenta de agrupar actividades cercanas en el mismo dia.
-Debes buscar en internet toda la informacion relevante sobre las actividades que se pueden realizar en la ciudad. 
-Para las actividades que proporcionen reserva previa el link de la reserva.
-Tambien indica recomendaciones del destino que visita.
-Recomienda la mejor forma de transporte para llegar a cada actividad.
-Realiza una planificacion alternativa para un dia en el caso de lluvia.
-Fuera de la planificacion diaria, mencionar otras actividades interesantes que no se inlcuyeron en la planificacion.
+<Context>
+Tu objetivo es generar un itinerario útil para realizar en {state["city"]} durante {state["days"]} días.
+{ADDITIONAL_CONTEXT}
+</Context>
 
-Planifica tu respueseta, tienes permitido usar la herramienta de busqueda web para obtener la informacion relevante y precisa que unicamente puedes obtener a traves de internet.
-Tienes un limite de {(  int(state["days"]) * 2) + 2} usos de la herramienta de busqueda web. No uses la herramienta de busqueda web mas de {(int(state["days"]) * 2) + 2} veces.
-Planifica las busuqedas en internet que debes hacer y realiza todas las llamadas a la herramienta al mismo tiempo.
+<Instructions>
+📌 Consideraciones clave:
+- Crea un itinerario de viaje detallado para cada dia.
+- El primer día suele tener menos tiempo disponible por la llegada a la ciudad.
+- Separa las actividades según el **momento del día recomendado** (mañana, tarde, noche). 
+- No uses horarios exactos, solo menciona **rangos de apertura o cierre** si son importantes.
+- Para cada actividad incluye: breve descripción, precios aproximados, duración sugerida, requisitos de reserva y ubicación.
+- Incluye el **mejor transporte recomendado** desde el centro o desde la actividad previa.
+- Agrupa actividades cercanas en el mismo día para optimizar desplazamientos.
+- Indica si hay que reservar con antelación e incluye enlaces cuando corresponda.
+- Fuera de la planificación diaria, menciona otras actividades interesantes que no entraron en el itinerario.
+- Añade recomendaciones útiles del destino (transporte local, seguridad, apps, costumbres).
+- Usa un lenguaje neutro / latinoamericano.
+- La respuesta final debe ser solo el itinerario, sin explicaciones adicionales.
+- La respuesta debe ser en formato markdown.
 
-Utiliza un lenguaje neutro o latinoamericano. La respuesta en formato markdown.
-Responder unicamente con el itinerario detallado, no incluyas ningun otro texto adicional.
-Tu respuesta sera utilizada directamente en el itinerario final de viaje.
-
-{ADITIONAL_CONTEXT}
+Tienes un límite de {(int(state["days"]) * 2) + 2} búsquedas web. Planifica las búsquedas y ejecútalas todas al mismo tiempo para obtener la información relevante.
+</Instructions>
 
 {OUTPUT_TEMPLATE}
+
+<Reasoning>
+Objetivo: generar un itinerario práctico y accionable para {state["city"]} durante {state["days"]} días, tomando en cuenta las preferencias y restricciones.
+
+Supuestos principales:
+- Si existe arrival_datetime/ departure_datetime, ajustar primer y último día (primer día más corto si la llegada es tarde).
+- Idioma de salida: español (neutro / latinoamericano).
+- Priorizar fuentes oficiales (sitios de atracciones, oficinas de turismo, operadores) para horarios, precios y reservas. Si no hay datos oficiales, usar fuentes secundarias y marcar como estimado.
+- No incluir actividades ilegales o peligrosas; indicar recomendaciones de seguridad genéricas.
+
+Heurística de planificación diaria:
+1. Agrupar actividades por **zona/barrio** para minimizar desplazamientos.
+2. Día 1: plan más liviano para acomodación/llegadas.
+3. Para cada actividad devolver: descripción breve, horarios (rango o abrir/cerrar), precio aproximado (rango), duración sugerida, requisito de reserva (sí/no + link), ubicación (dirección/barrio), transporte recomendado y accesibilidad.
+
+Plan de búsquedas (usar hasta N búsquedas; priorizar en este orden):
+1. Sitio oficial de turismo de {state["city"]} / oficina de turismo municipal.
+2. Horarios y precios actualizados (sitios oficiales o páginas de venta autorizada).
+
+Reglas de verificación y fuentes:
+- Si dos fuentes confiables discrepan >15% en precio o horario, marcar ambos y recomendar confirmar en el sitio oficial.
+- Incluir máximo 1–2 enlaces por actividad (preferir enlace de reserva o página oficial).
+- Citar/registrar la fuente más relevante para cada dato clave (horario/precio/reserva).
+
+Salida / restricciones:
+- La respuesta final debe ser **solo** el itinerario en markdown según OUTPUT_TEMPLATE.
+- No usar horarios exactos; solo rangos de apertura/cierre cuando sea relevante.
+- Añadir al final sección “Extras fuera del itinerario” y “Recomendaciones prácticas” (transporte, seguridad, apps).
+- Si no hay resultados fiables para una actividad, marcar “información no verificada — confirmar en sitio oficial”.
+
+Limitaciones y fallbacks:
+- Si se alcanza el límite de búsquedas antes de cubrir todos los elementos, priorizar: 1) imperdibles de cada día, 2) reservas necesarias, 3) transporte entre actividades; y marcar lo que quedó como “verificar”.
+- No incluir enlaces no oficiales para reservas de tours o entradas (evitar revendedores).
+</Reasoning>
+
+
 """)]
 
 def get_feedback_fixer_prompt(state: State):
     return [SystemMessage(content=f"""
-Eres un experto en planificacion de viajes, el encargado de ajustar el itinerario de viaje en base al feedback de tu supervisor.
-Feedback del supervisor: 
+Eres un asistente de viajes con 15 años de experiencia que ayuda a los usuarios a planificar actividades en su viaje. 
 
+Feedback: 
 <feedback>
 {state["feedback"]}
 </feedback>
 
-Ajusta el itinerario de viaje en base al feedback del supervisor.
-Mantene el formato del itinerario de viaje. Ajustar unicamente los puntos que el supervisor te indique. Mantener links de las actividades.
+Ajusta el itinerario de viaje en base al feedback dado.
+Mantene el formato del itinerario de viaje. Ajustar unicamente los puntos que se mencionan en el feedback. Mantener links de las actividades.
 
-Considera que el primer dia el viajero llega a la ciudad, por lo que tendra menos tiempo para realizar actividades.
-Realiza un itinerario detallado para cada dia. 
-Separa las actividades segun el momento del dia (mañana, tarde, noche, tarde-noche, etc.) recomendado para cada actividad.
-Para cada actividad sugerida considera los horarios, precios, duracion, reserva e info adicional (segun corresponda a la actividad).
-Considera la ubicacion de las actividades y el desplazamiento entre ellas. Intenta de agrupar actividades cercanas en el mismo dia.
-Debes buscar en internet toda la informacion relevante sobre las actividades que se pueden realizar en la ciudad. 
-Debes tener en cuenta y aclararle al usuario los horarios de apertura, precio y disponibilidad de las actividades.
-Debes proporcionar para las actividades que proporcionen reserva previa el link de la reserva.
-Tambien indica recomendaciones del destino que visita.
-Recomienda la mejor forma de transporte para llegar a cada actividad.
-Realiza una planificacion alternativa para un dia en el caso de lluvia.
-Fuera de la planificacion diaria, mencionar otras actividades interesantes que no se inlcuyeron en la planificacion.
+📌 Consideraciones clave:
+- El primer día suele tener menos tiempo disponible por la llegada a la ciudad.
+- Separa las actividades según el **momento del día recomendado** (mañana, tarde, noche). 
+- No uses horarios exactos, solo menciona **rangos de apertura o cierre** si son importantes.
+- Para cada actividad incluye: breve descripción, precios aproximados, duración sugerida, requisitos de reserva y ubicación.
+- Incluye el **mejor transporte recomendado** desde el centro o desde la actividad previa.
+- Agrupa actividades cercanas en el mismo día para optimizar desplazamientos.
+- Indica si hay que reservar con antelación e incluye enlaces cuando corresponda.
+- Fuera de la planificación diaria, menciona otras actividades interesantes que no entraron en el itinerario.
+- Añade recomendaciones útiles del destino (transporte local, seguridad, apps, costumbres).
+- Usa un lenguaje neutro / latinoamericano.
+- La respuesta final debe ser solo el itinerario, sin explicaciones adicionales.
+- La respuesta debe ser en formato markdown.
 
 El itinerario debe mantener exactamente el mismo formato, modificando unicamente los puntos que el supervisor te indique.
 No agregues ningun otro texto adicional. Tu respuesta sera utilizada directamente en el itinerario final de viaje.
@@ -154,7 +186,6 @@ Responde en formato markdown.
 {state["tmp_itinerary"]}
 </Itinerario de viaje>
 
-
 {OUTPUT_TEMPLATE}
 """)]
 
@@ -162,7 +193,7 @@ def get_feedback_provider_prompt(itinerary: str):
     return [SystemMessage(content=f"""
     Eres un experto en planificacion de viajes, el encargado de proporcionar feedback sobre el itinerario de viaje.
     Considera el contexto adicional:
-    {ADITIONAL_CONTEXT}
+    {ADDITIONAL_CONTEXT}
 
     <Itinerario de viaje>
     {itinerary}
