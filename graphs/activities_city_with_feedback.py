@@ -1,21 +1,29 @@
 from typing import TypedDict, Annotated
 from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
-from langgraph.types import Send
 from langgraph.graph import StateGraph, START, END
-import operator
+from pydantic import BaseModel, Field
 import time
 
-
-class CityState(TypedDict):
-    city: str
-    days: str
+class ActivitiesStructure(BaseModel):
+    activities: list[str] = Field(..., description="Lista de actividades para realizar en la ciudad")
+    alternative_activities: list[str] = Field(..., description="Lista de actividades alternativas para realizar en la ciudad")
 
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
-    itineraries: Annotated[list[str], operator.add]
-    cities: list[CityState]
+    city: str
+    days: int
+    activities: list[str]
+    alternative_activities: list[str]
+    activities_confirmed: bool
+    activities_feedback: str
     final_itinerary: str
+
+
+def suggest_activities(state: State):
+    time.sleep(2)
+    # LLM that suggests imperdibles activities for each city (the user select or deselect the activities that want to do)
+    return {"activities": ["Visit the Eiffel Tower", "Visit the Brandenburg Gate", "Visit the Colosseum", "Visit the Prado Museum"]}
 
 
 def feedback_activities(state: State):
@@ -45,11 +53,6 @@ def generate_detailed_itinerary(state: State):
     return {"activities": activities_dict}
 
 
-def suggest_activities(state: State):
-    time.sleep(2)
-    # LLM that suggests imperdibles activities for each city (the user select or deselect the activities that want to do)
-    return {"activities": {"Madrid": ["Visit the Eiffel Tower", "Visit the Brandenburg Gate", "Visit the Colosseum", "Visit the Prado Museum"], "Berlin": ["Visit the Eiffel Tower", "Visit the Brandenburg Gate", "Visit the Colosseum", "Visit the Prado Museum"], "Rome": ["Visit the Eiffel Tower", "Visit the Brandenburg Gate", "Visit the Colosseum", "Visit the Prado Museum"], "Madrid": ["Visit the Eiffel Tower", "Visit the Brandenburg Gate", "Visit the Colosseum", "Visit the Prado Museum"]}}
-
 
 def activities_router(state: State):
     # The user declare an specific days in cities? If not, feedback days in cities
@@ -59,6 +62,7 @@ def activities_router(state: State):
         return "generate_detailed_itinerary"
     
     return "suggest_activities" 
+
 
 graph_builder = StateGraph(State)
 
