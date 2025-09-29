@@ -5,6 +5,7 @@ from langgraph.types import Send
 from langgraph.graph import StateGraph, START, END
 import operator
 import time
+from graphs.activities_city import graph as activities_city_graph
 
 class ItineraryState(TypedDict):
     city: str
@@ -66,7 +67,8 @@ def continue_to_itineraries(state: State):
 graph_builder = StateGraph(State)
 
 graph_builder.add_node("map", map)
-graph_builder.add_node("generate_itinerary", sub_graph)
+# graph_builder.add_node("generate_itinerary", sub_graph)
+graph_builder.add_node("generate_itinerary", activities_city_graph)
 graph_builder.add_node("reduce", reduce)
 
 graph_builder.add_edge(START, "map")

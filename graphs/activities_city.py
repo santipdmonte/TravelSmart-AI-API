@@ -16,12 +16,18 @@ load_dotenv()
 from langchain.chat_models import init_chat_model
 
 
+class ItineraryState(TypedDict):
+    city: str
+    days: str
+    itinerary: str
+
 class State(TypedDict):
     city: str
     days: int
     feedback: str | None = None
     tmp_itinerary: str | None = None
     final_itinerary: str | None = None
+    itineraries: str
     tool_calling: bool = False
     messages: Annotated[list[AnyMessage], add_messages]
 
@@ -93,17 +99,16 @@ Tu objetivo es generar un itinerario detallado de actividades para realizar en {
 Considera que el primer dia el viajero llega a la ciudad, por lo que tendra menos tiempo para realizar actividades.
 Realiza un itinerario detallado para cada dia. 
 Separa las actividades segun el momento del dia (mañana, tarde, noche, tarde-noche, etc.) recomendado para cada actividad.
-Para cada actividad sugerida considera los horarios, precios, duracion, reserva e info adicional (segun corresponda a la actividad).
+Para cada actividad sugerida considera los horarios e info adicional (precios, duracion, reserva si corresonde con la actividad).
 Considera la ubicacion de las actividades y el desplazamiento entre ellas. Intenta de agrupar actividades cercanas en el mismo dia.
 Debes buscar en internet toda la informacion relevante sobre las actividades que se pueden realizar en la ciudad. 
-Debes tener en cuenta y aclararle al usuario los horarios de apertura, precio y disponibilidad de las actividades.
-Debes proporcionar para las actividades que proporcionen reserva previa el link de la reserva.
+Para las actividades que proporcionen reserva previa el link de la reserva.
 Tambien indica recomendaciones del destino que visita.
 Recomienda la mejor forma de transporte para llegar a cada actividad.
 Realiza una planificacion alternativa para un dia en el caso de lluvia.
 Fuera de la planificacion diaria, mencionar otras actividades interesantes que no se inlcuyeron en la planificacion.
 
-Planifica tu respueseta, tienes permitido usar la herramienta de busqueda web para obtener la informacion relevante que unicamente puedes obtener a traves de internet.
+Planifica tu respueseta, tienes permitido usar la herramienta de busqueda web para obtener la informacion relevante y precisa que unicamente puedes obtener a traves de internet.
 Tienes un limite de {(  int(state["days"]) * 2) + 2} usos de la herramienta de busqueda web. No uses la herramienta de busqueda web mas de {(int(state["days"]) * 2) + 2} veces.
 Planifica las busuqedas en internet que debes hacer y realiza todas las llamadas a la herramienta al mismo tiempo.
 
@@ -191,7 +196,7 @@ def initial_itinerary_agent(state: State):
 
     city = state["city"]
     days = state["days"]
-    with open(f"../examples/activities_city_{city}_{days}_{thread_id}_tmp.md", "w") as f:
+    with open(f"examples/activities_city_{city}_{days}_{thread_id}_tmp.md", "w") as f:
         f.write(response.content)
 
     return {"messages": [response], "tmp_itinerary": response.content}
@@ -203,7 +208,7 @@ def feedback_provider_agent(state: State):
     city = state["city"]
     days = state["days"]
     thread_id = config["configurable"]["thread_id"]
-    with open(f"../examples/activities_city_{city}_{days}_{thread_id}_feedback.md", "w") as f:
+    with open(f"examples/activities_city_{city}_{days}_{thread_id}_feedback.md", "w") as f:
         f.write(response.content)
 
     return {"messages": [response], "feedback": response.content}
@@ -215,10 +220,16 @@ def feedback_fixer_agent(state: State):
     city = state["city"]
     days = state["days"]
     thread_id = config["configurable"]["thread_id"]
-    with open(f"../examples/activities_city_{city}_{days}_{thread_id}_final.md", "w") as f:
+    with open(f"examples/activities_city_{city}_{days}_{thread_id}_final.md", "w") as f:
         f.write(response.content)
 
-    return {"messages": [response], "final_itinerary": response.content}
+    itinerary = ItineraryState(
+        city=city,
+        days=days,
+        itinerary=response.content
+    )
+
+    return {"messages": [response], "final_itinerary": response.content, "itineraries": [itinerary]}
 
 def web_search(query: str):
     """
@@ -240,7 +251,7 @@ def web_search(query: str):
         ]
     )
 
-    return {"messages": [ToolMessage(content=formatted_results)]}
+    return {"messages": [formatted_results]}
 
 #  Nodes
 tools = [web_search]
