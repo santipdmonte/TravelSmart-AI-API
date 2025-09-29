@@ -220,56 +220,6 @@ def feedback_fixer_agent(state: State):
 
     return {"messages": [response], "final_itinerary": response.content}
 
-
-# def route_tools_and_feedback(
-#     state: State,
-# ):
-#     """
-#     Use in the conditional_edge to route to the ToolNode if the last message
-#     has tool calls. Otherwise, check if there is feedback. If there is feedback, route to the feedback_agent.
-#     If there is no feedback, route to the end.
-#     """
-#     if isinstance(state, list):
-#         ai_message = state[-1]
-#     elif messages := state.get("messages", []):
-#         ai_message = messages[-1]
-#     else:
-#         raise ValueError(f"No messages found in input state to tool_edge: {state}")
-#     if hasattr(ai_message, "tool_calls") and len(ai_message.tool_calls) > 0:
-#         print("\n\ntools\n\n")
-#         return "tools"
-    
-#     if state["feedback"] is None:
-#         print("\n\nfeedback_agent\n\n")
-#         return "feedback_agent"
-
-#     print("\n\nEND\n\n")
-#     return END
-
-# graph_builder.add_conditional_edges("itinerary_agent", 
-#     route_tools_and_feedback,
-#     {
-#         "tools": "tools",
-#         "feedback_agent": "feedback_agent",
-#         END: END
-#     }
-# )
-
-
-# Tools
-# web_search = TavilySearchResults(
-#         max_results=2,
-#         topic="general",
-#         # include_answer=False,
-#         # include_raw_content=False,
-#         # include_images=False,
-#         # include_image_descriptions=False,
-#         # search_depth="basic",
-#         # time_range="day",
-#         # include_domains=None,
-#         # exclude_domains=None
-#     )
-
 def web_search(query: str):
     """
     Search the web for the query.
