@@ -1,8 +1,8 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "agent": "./graphs/activities_city.py:graph",
-    "map_reducer": "./graphs/activities_city_map_reducer.py:graph",
+    "activities_city_agent": "./graphs/activities_city.py:graph",
+    "activities_city_with_feedback_agent": "./graphs/activities_city_with_feedback.py:graph",
     "main_itinerary_graph": "./graphs/main_itinerary_graph.py:graph"
   },
   "env": ".env"

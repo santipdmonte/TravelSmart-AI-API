@@ -18,13 +18,6 @@ class State(TypedDict):
     final_itinerary: str
 
 
-def map(state: State):
-    pass
-
-def generate_itinerary(city: CityState):
-    time.sleep(3)
-    return {"itineraries": [f"Itinerario para {city['city']} durante {city['days']} dias"]}
-
 def feedback_activities(state: State):
 
     # user_feedback = interrupt(  
@@ -65,24 +58,18 @@ def activities_router(state: State):
     if activities_confirmed:
         return "generate_detailed_itinerary"
     
-    return "map" 
-
-def continue_to_itineraries(state: State):
-    return [Send("generate_itinerary", city) for city in state["cities"]]
+    return "suggest_activities" 
 
 graph_builder = StateGraph(State)
 
 graph_builder.add_node("suggest_activities", suggest_activities)
 graph_builder.add_node("feedback_activities", feedback_activities)
 graph_builder.add_node("generate_detailed_itinerary", generate_detailed_itinerary)
-graph_builder.add_node("map", map)
-graph_builder.add_node("generate_itinerary", generate_itinerary)
 
 graph_builder.add_edge(START, "suggest_activities")
 graph_builder.add_edge("suggest_activities", "feedback_activities")
-graph_builder.add_conditional_edges("feedback_activities", activities_router, ["suggest_activities", "map"])
-graph_builder.add_conditional_edges("map", continue_to_itineraries, ["generate_itinerary"])
-graph_builder.add_edge("generate_itinerary", END)
+graph_builder.add_conditional_edges("feedback_activities", activities_router, ["suggest_activities", "generate_detailed_itinerary"])
+graph_builder.add_edge("generate_detailed_itinerary", END)
 
 graph =graph_builder.compile()
 
