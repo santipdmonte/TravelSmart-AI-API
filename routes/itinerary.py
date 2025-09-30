@@ -286,15 +286,15 @@ def generate_route(
     return state
 
 
-
-@itinerary_router.post("/activities/city")
-def generate_activities_city(
+@itinerary_router.post("/{itinerary_id}/route_confirmed")
+def confirm_route(
     itinerary_id: uuid.UUID,
     db: Session = Depends(get_db)
 ):
     """Generate activities for a city"""
     itinerary_service = get_itinerary_service(db)
-    itinerary = itinerary_service.generate_itineraries_daily(itinerary_id)
+    itinerary = itinerary_service.itinerary_route_confirmed(itinerary_id)
     if not itinerary:
+        print(f"\n\nItinerary not found\n\n")
         raise HTTPException(status_code=404, detail="Itinerary not found")
     return itinerary

@@ -144,7 +144,34 @@ class ItineraryService:
         ).offset(skip).limit(limit).all()
 
 
+    def itinerary_route_confirmed(self, itinerary_id: uuid.UUID) -> Optional[Itinerary]:
+        db_itinerary = self.get_itinerary_by_id(itinerary_id)
+        if not db_itinerary:
+            return None
+        
+        db_itinerary.status = "confirmed"
+        self.db.commit()
+        self.db.refresh(db_itinerary)
+
+        # import time
+        # time.sleep(10)
+
+        try:
+            db_itinerary = self.generate_itineraries_daily(itinerary_id)
+            # Force error
+            # raise Exception("Error generating itineraries daily")
+        except Exception as e:
+            print(f"\n\nError generating itineraries daily: {e}\n\n")
+            db_itinerary.status = "draft"
+            self.db.commit()
+            self.db.refresh(db_itinerary)
+            return None
+
+        return db_itinerary
+
     def generate_itineraries_daily(self, itinerary_id: uuid.UUID) -> Optional[Itinerary]:
+        import time
+        time.sleep(10)
         itinerary = self.get_itinerary_by_id(itinerary_id)
         if not itinerary:
             return None
