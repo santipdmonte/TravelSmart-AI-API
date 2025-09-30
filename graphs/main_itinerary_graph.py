@@ -2,7 +2,21 @@ from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import interrupt
 import time
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage
+from pydantic import Field
 
+
+# class CityDay(TypedDict):
+#     city: str = Field(..., description="Ciudad")
+#     days: int = Field(..., description="Cantidad de dias en la ciudad")
+
+class CitiesDayStructured(TypedDict):
+    cities_day: dict[str, int] = Field(..., description="Ciudades y cantidad dedias para un viaje")
+    cities_alternative: list[str] = Field(..., description="Ciudades alternativas para visitar en el viaje")
+
+model = ChatOpenAI(model="gpt-5-mini")
+model_structured = model.with_structured_output(CitiesDayStructured)
 
 class State(TypedDict):
     query: str
@@ -17,6 +31,38 @@ class State(TypedDict):
     total_days: int
     transportation_insights: dict[str, str]
     accommodations_insights: dict[str, str]
+
+
+def get_cities_and_days_prompt(state: State):
+    return [SystemMessage(content=f"""
+<System>
+Rol: Experto en planificacion de viajes y guia de viajes.
+</System>
+
+<Context>
+El viaje sera realizado por una familia de 4 personas con 2 hijos de 20 y 22 años.
+Su objetivo de viaje es conocer los lugares mas turisicos de la ciudad.
+La temporada del viaje es en verano.
+Para este viaje quieren tener un ritmo dinamico.
+El objetivo del viaje es conocer los lugares mas turisicos.
+</Context>
+
+<Input>
+{state["query"]}
+</Input>
+
+<Instructions>
+Sugere ciudades y cantidad de dias para un viaje.
+Tene en cuenta las preferencias del viajero.
+Sugere ciudades alternativas para visitar en el viaje.
+El viajero va a tener la posibilidad de aprovar las ciudades y cantidad de dias que se sugieren. O seleccionar las ciudades alternativas.
+
+{"" if not state["cities_feedback"] else f"El feedback del viajero es: {state["cities_feedback"]}"}
+</Instructions>
+
+"""
+)]
+
 
 # Generate a path as if the input is Europe
 
@@ -46,9 +92,11 @@ def join(state: State):
 
 
 def suggest_cities_and_days(state: State):
-    time.sleep(3)
-    # LLM that suggests cities for each country
-    return {"cities_day": {"Madrid": 3, "Berlin": 3, "Rome": 3, "Madrid": 3}}
+    
+    output = model_structured.invoke(get_cities_and_days_prompt(state))
+    
+    print(f"\n\nOutput: {output}\n\n")
+    return {"cities_day": output['cities_day'], "cities_alternative": output['cities_alternative']}
 
 # ========= Feedback nodes ============
 
@@ -56,7 +104,7 @@ def suggest_cities_and_days(state: State):
 def feedback_cities_and_days(state: State):
 
     user_feedback = interrupt(  
-        f"Se sugirieron las siguientes ciudades: {state["cities_day"]}. "
+        f"Se sugirieron las siguientes ciudades: {state["cities_day"]}. y las siguientes ciudades alternativas: {state["cities_alternative"]}. "
         "¿Estás de acuerdo? [Si (s)] (Mencionar cambios si no estas de acuerdo)"
     )
 
