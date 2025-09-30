@@ -286,36 +286,16 @@ def generate_route(
     return state
 
 
-from graphs.activities_city import activities_city_agent
-import uuid
-from langchain_openai import ChatOpenAI
 
 @itinerary_router.post("/activities/city")
 def generate_activities_city(
-    city: str,
-    days: int,
+    itinerary_id: uuid.UUID,
+    db: Session = Depends(get_db)
 ):
     """Generate activities for a city"""
-
-    input_message = "Ayudame a crear mi itinerario de viaje"
-
-    config = {
-        "configurable": {
-            "thread_id": str(uuid.uuid4()),
-        }
-    }
-    state = {
-        "city": city,
-        "days": days,
-        "messages": [{"role": "user", "content": input_message}],
-    }
-
-    state = activities_city_agent.invoke(state, config)
-    itinerary = state["messages"][-1].content
-
-    # Guardar el resultado en un .md
-    url = f"examples/activities_city_{city}_{days}_{config['configurable']['thread_id']}.md"
-    with open(url, "w") as f:
-        f.write(itinerary)
-
-    return {"content": itinerary}
+    itinerary_service = get_itinerary_service(db)
+    itinerary = itinerary_service.generate_itineraries_daily(itinerary_id)
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+    # return itinerary
+    return {"message": "Itineraries generated successfully"}

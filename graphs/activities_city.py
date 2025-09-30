@@ -9,17 +9,22 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 from langchain_community.tools import TavilySearchResults
 from langgraph.checkpoint.memory import InMemorySaver
+from pydantic import BaseModel, Field
 
 from dotenv import load_dotenv
 load_dotenv()
 
 from langchain.chat_models import init_chat_model
 
+class ItineraryDaily(BaseModel):
+    itinerary: str = Field(..., description="Itinerario diario completo")
+    itinerary_resume: str = Field(..., description="Resumen del itinerario diario")
 
 class ItineraryState(TypedDict):
     city: str
     days: str
     itinerary: str
+    itinerary_resume: str
 
 class State(TypedDict):
     city: str
@@ -27,7 +32,7 @@ class State(TypedDict):
     feedback: str | None = None
     tmp_itinerary: str | None = None
     final_itinerary: str | None = None
-    itineraries: str
+    itineraries: list[ItineraryState]
     tool_calling: bool = False
     messages: Annotated[list[AnyMessage], add_messages]
 
@@ -230,7 +235,7 @@ def initial_itinerary_agent(state: State):
     with open(f"examples/activities_city_{city}_{days}_{thread_id}_tmp.md", "w") as f:
         f.write(response.content)
 
-    return {"messages": [response], "tmp_itinerary": response.content}
+    return {"tmp_itinerary": response.content}
 
 
 def feedback_provider_agent(state: State):
@@ -242,25 +247,31 @@ def feedback_provider_agent(state: State):
     with open(f"examples/activities_city_{city}_{days}_{thread_id}_feedback.md", "w") as f:
         f.write(response.content)
 
-    return {"messages": [response], "feedback": response.content}
+    return {"feedback": response.content}
 
 
 def feedback_fixer_agent(state: State):
     print("\n\nfeedback_fixer_agent\n\n")
-    response = llm.invoke(get_feedback_fixer_prompt(state))
+    llm_structured = llm.with_structured_output(ItineraryDaily)
+    response = llm_structured.invoke(get_feedback_fixer_prompt(state))
     city = state["city"]
     days = state["days"]
     thread_id = config["configurable"]["thread_id"]
     with open(f"examples/activities_city_{city}_{days}_{thread_id}_final.md", "w") as f:
-        f.write(response.content)
+        f.write(response.itinerary)
 
     itinerary = ItineraryState(
         city=city,
         days=days,
-        itinerary=response.content
+        itinerary=response.itinerary,
+        itinerary_resume=response.itinerary_resume
     )
 
-    return {"messages": [response], "final_itinerary": response.content, "itineraries": [itinerary]}
+    return {
+        "final_itinerary": response.itinerary, 
+        "final_itinerary_resume": response.itinerary_resume, 
+        "itineraries": [itinerary]
+    }
 
 def web_search(query: str):
     """

@@ -1,8 +1,11 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy import and_, or_
 from models.itinerary import Itinerary
 from models.user import User
 from schemas.itinerary import ItineraryCreate, ItineraryUpdate, ItineraryGenerate
+from graphs.activities_city_map_reducer import ItineraryState
+from graphs.activities_city_map_reducer import graph as activities_city_map_reducer_graph
 from typing import List, Optional
 from datetime import datetime, timedelta
 import uuid
@@ -139,6 +142,66 @@ class ItineraryService:
                 Itinerary.deleted_at.is_(None)
             )
         ).offset(skip).limit(limit).all()
+
+
+    def generate_itineraries_daily(self, itinerary_id: uuid.UUID) -> Optional[Itinerary]:
+        itinerary = self.get_itinerary_by_id(itinerary_id)
+        if not itinerary:
+            return None
+        
+        if not itinerary.details_itinerary:
+            return None
+        
+        cities = []
+        for destino in itinerary.details_itinerary["destinos"]:
+            cities.append({
+                "city": destino["ciudad"],
+                "days": destino["dias_en_destino"]
+            })
+        
+        itineraries = activities_city_map_reducer_graph.invoke({"cities": cities}).get("itineraries", [])
+
+        print(f"\n\nitineraries: {itineraries}\n\n")
+
+        return self.add_itineraries_daily(itinerary_id, itineraries)
+
+
+    def add_itineraries_daily(self, itinerary_id: uuid.UUID, itineraries: List[ItineraryState]) -> Optional[Itinerary]:
+        db_itinerary = self.get_itinerary_by_id(itinerary_id)
+        if not db_itinerary:
+            return None
+        
+        if not db_itinerary.details_itinerary:
+            return None
+        
+        details = db_itinerary.details_itinerary
+        
+        if 'destinos' not in details:
+            return None
+        
+        itineraries_dict = {
+            itinerary['city']: {
+                'itinerario_diario': itinerary['itinerary'],
+                'itinerario_diario_resumen': itinerary['itinerary_resume']
+            }
+            for itinerary in itineraries
+        }
+        
+        for destino in details['destinos']:
+            ciudad = destino.get('ciudad')
+            
+            if ciudad and ciudad in itineraries_dict:
+                print(f"\n\nciudad: {ciudad} tiene un itinerario correspondiente\n\n")
+                destino['itinerario_diario'] = itineraries_dict[ciudad]['itinerario_diario']
+                destino['itinerario_diario_resumen'] = itineraries_dict[ciudad]['itinerario_diario_resumen']
+        
+        db_itinerary.details_itinerary = details
+        flag_modified(db_itinerary, "details_itinerary") # For SQLAlchemy to detect the changes
+        self.db.commit()
+        
+        return db_itinerary
+        
+        
     
     def search_itineraries(self, query: str, skip: int = 0, limit: int = 100) -> List[Itinerary]:
         """Search itineraries by trip name or destination"""

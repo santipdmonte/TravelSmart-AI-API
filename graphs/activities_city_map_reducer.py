@@ -11,6 +11,7 @@ class ItineraryState(TypedDict):
     city: str
     days: str
     itinerary: str
+    itinerary_resume: str
 
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
@@ -24,7 +25,9 @@ def generate_itinerary(state: State):
     itinerary = ItineraryState(
         city=state["city"], 
         days=state["days"], 
-        itinerary=f"Itinerario para {state['city']} durante {state['days']} dias")
+        itinerary=f"Itinerario para {state['city']} durante {state['days']} dias",
+        itinerary_resume=f"Resumen del itinerario para {state['city']} durante {state['days']} dias"
+    )
     return {"itineraries": [itinerary]}
 
 
@@ -67,8 +70,8 @@ def continue_to_itineraries(state: State):
 graph_builder = StateGraph(State)
 
 graph_builder.add_node("map", map)
-# graph_builder.add_node("generate_itinerary", sub_graph)
-graph_builder.add_node("generate_itinerary", activities_city_graph)
+graph_builder.add_node("generate_itinerary", generate_itinerary) # Testing
+# graph_builder.add_node("generate_itinerary", activities_city_graph)
 graph_builder.add_node("reduce", reduce)
 
 graph_builder.add_edge(START, "map")
@@ -76,7 +79,7 @@ graph_builder.add_conditional_edges("map", continue_to_itineraries, ["generate_i
 graph_builder.add_edge("generate_itinerary", "reduce")
 graph_builder.add_edge("reduce", END)
 
-graph =graph_builder.compile()
+graph = graph_builder.compile()
 
 state = {
     "cities": [
