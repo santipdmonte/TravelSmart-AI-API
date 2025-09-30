@@ -161,8 +161,6 @@ class ItineraryService:
         
         itineraries = activities_city_map_reducer_graph.invoke({"cities": cities}).get("itineraries", [])
 
-        print(f"\n\nitineraries: {itineraries}\n\n")
-
         return self.add_itineraries_daily(itinerary_id, itineraries)
 
 
@@ -191,13 +189,13 @@ class ItineraryService:
             ciudad = destino.get('ciudad')
             
             if ciudad and ciudad in itineraries_dict:
-                print(f"\n\nciudad: {ciudad} tiene un itinerario correspondiente\n\n")
                 destino['itinerario_diario'] = itineraries_dict[ciudad]['itinerario_diario']
                 destino['itinerario_diario_resumen'] = itineraries_dict[ciudad]['itinerario_diario_resumen']
         
         db_itinerary.details_itinerary = details
         flag_modified(db_itinerary, "details_itinerary") # For SQLAlchemy to detect the changes
         self.db.commit()
+        self.db.refresh(db_itinerary)
         
         return db_itinerary
         

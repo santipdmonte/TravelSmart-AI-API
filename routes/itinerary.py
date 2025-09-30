@@ -297,5 +297,4 @@ def generate_activities_city(
     itinerary = itinerary_service.generate_itineraries_daily(itinerary_id)
     if not itinerary:
         raise HTTPException(status_code=404, detail="Itinerary not found")
-    # return itinerary
-    return {"message": "Itineraries generated successfully"}
+    return itinerary
