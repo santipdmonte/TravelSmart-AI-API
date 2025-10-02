@@ -10,28 +10,43 @@ from langgraph.prebuilt import ToolNode
 from langchain_community.tools import TavilySearchResults
 from langgraph.checkpoint.memory import InMemorySaver
 from pydantic import BaseModel, Field
+from tools.geocoding_tool import batch_geocode_attractions
+from tools.wikipedia_tool import batch_get_wikipedia_images
 
 from dotenv import load_dotenv
 load_dotenv()
 
 from langchain.chat_models import init_chat_model
 
+
+class AttractionsData (BaseModel):
+    attraction: str = Field(..., description="Atracción")
+    latitude: float = Field(..., description="Latitud")
+    longitude: float = Field(..., description="Longitud")
+    full_address: str = Field(..., description="Dirección")
+    images: list[str] = Field(..., description="Imágenes")
+
 class ItineraryDaily(BaseModel):
     itinerary: str = Field(..., description="Itinerario diario completo")
     itinerary_resume: str = Field(..., description="Resumen del itinerario diario")
+    attractions_list: list[str] = Field(..., description="Lista de atracciones")
 
 class ItineraryState(TypedDict):
     city: str
+    country: str
     days: str
     itinerary: str
     itinerary_resume: str
+    attractions_data: dict[str, AttractionsData]
 
 class State(TypedDict):
     city: str
+    country: str
     days: int
     feedback: str | None = None
     tmp_itinerary: str | None = None
     final_itinerary: str | None = None
+    attractions_list: list[str] | None = None
     itineraries: list[ItineraryState]
     tool_calling: bool = False
     messages: Annotated[list[AnyMessage], add_messages]
@@ -257,7 +272,7 @@ def feedback_fixer_agent(state: State):
     city = state["city"]
     days = state["days"]
     thread_id = config["configurable"]["thread_id"]
-    with open(f"examples/activities_city_{city}_{days}_{thread_id}_final.md", "w") as f:
+    with open(f"examples/attractions_city_{city}_{days}_{thread_id}_final.md", "w") as f:
         f.write(response.itinerary)
 
     itinerary = ItineraryState(
@@ -269,9 +284,50 @@ def feedback_fixer_agent(state: State):
 
     return {
         "final_itinerary": response.itinerary, 
-        "final_itinerary_resume": response.itinerary_resume, 
+        "final_itinerary_resume": response.itinerary_resume,
+        "attractions_list": response.attractions_list,
         "itineraries": [itinerary]
     }
+
+def itinerary_attractions_data():#state: State):
+    print("\n\nitinerary_attractions_data\n\n")
+
+    # attractions_list = state["attractions_list"]
+    # country = state["country"]
+    country = "FR"
+    attractions_list = ["Torre Eiffel", "Louvre Museum", "Arc de Triomphe"]
+    
+    # Get coordinates of each attraction
+    attractions_data = batch_geocode_attractions(
+        attractions=attractions_list,
+        country=country
+    )
+
+    # print(attractions_data)
+
+    # Get images of each attraction
+    attractions_images = batch_get_wikipedia_images(
+        queries=attractions_list,
+        language="en",
+        max_images_per_query=2
+    )
+
+    # print(attractions_images)
+
+    # Combine both dictionaries
+    attractions_complete_data = {}
+    for attraction_name in attractions_list:
+        attractions_complete_data[attraction_name] = {
+            **attractions_data.get(attraction_name, {}),
+            **attractions_images.get(attraction_name, {})
+        }
+    
+    print("\n\nCombined attractions data:\n")
+    print(attractions_complete_data)
+
+    # return {"attractions_data": attractions_complete_data}
+
+
 
 def web_search(query: str):
     """
@@ -353,3 +409,14 @@ config = {"configurable": {"thread_id": str(uuid.uuid4())}}
 #         print("User: " + user_input)
 #         stream_graph_updates(user_input)
 #         break
+
+
+# if __name__ == "__main__":
+#     # Ejecuta los ejemplos que quieras:
+    
+#     # example_basic_search()
+#     # example_spanish_search()
+#     # example_multiple_results()
+#     itinerary_attractions_data()
+#     # example_itinerary_enrichment()
+#     # example_multi_language()
