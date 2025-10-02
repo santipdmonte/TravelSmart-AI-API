@@ -63,7 +63,6 @@ class ItineraryService:
                 )
 
         state = generate_main_itinerary(itinerary_data)
-
         details_itinerary = state.model_dump()
 
         print(f"\n\ndetails_itinerary (model_dump): {details_itinerary}\n\n")
@@ -73,6 +72,9 @@ class ItineraryService:
         session_id_to_use = None if user else (session_id or uuid.uuid4())
 
         itinerary_metadata = itinerary_data.preferences.model_dump()
+        itinerary_metadata["traveler_profile_name"] = traveler_type.name or None
+        itinerary_metadata["traveler_profile_prompt_desc"] = traveler_type.prompt_description or None
+        itinerary_metadata["traveler_profile_description"] = traveler_type.description or None
 
         db_itinerary = Itinerary(
             trip_name=itinerary_data.trip_name,
