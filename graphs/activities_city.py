@@ -64,7 +64,7 @@ class State(TypedDict):
 
 OUTPUT_TEMPLATE = """
 
-### Formato de salida por día
+<Formato de salida por día>
 
 **Día X – Breve resumen del día**  
 
@@ -94,6 +94,7 @@ OUTPUT_TEMPLATE = """
 - Otras actividades interesantes no incluidas
 - Recomendaciones prácticas y consejos útiles (transporte local, seguridad, apps, costumbres)
 
+</Formato de salida por día>
 """
 
 ADDITIONAL_CONTEXT = """
@@ -102,6 +103,28 @@ Su objetivo de viaje es conocer los lugares mas turisicos de la ciudad.
 La temporada del viaje es en verano.
 Para este viaje quieren tener un ritmo dinamico.
 """
+
+ITINERARY_METADATA =  {
+    "temporada": "verano",
+    "tipo_viaje": "en familia",
+    "ritmo_viaje": "dinamico",
+    "ocasion": None,
+    "vista_ciudad": "local",
+    "estilos_viaje": None,
+    "preferencias_comida": None,
+    "presupuesto": None,
+    "moneda_presupuesto": "USD",
+    "objetivo": "Conocer la gastronomia",
+    "notas": None
+  }
+
+def format_itinerary_metadata(itinerary_metadata: dict):
+    
+    response = ""
+    for key, value in itinerary_metadata.items():
+        response += f"{key}: {value}\n" if value else ""
+    return response
+
 
 def get_itinerary_prompt(state: State):
     return [SystemMessage(content=f"""
