@@ -12,7 +12,7 @@ import uuid
 from graphs.itinerary_graph import generate_main_itinerary
 from graphs.itinerary_agent import itinerary_agent
 from utils.agent import is_valid_thread_state
-from utils.utils import state_to_dict, detect_hil_mode
+from utils.utils import detect_hil_mode
 from utils.accommodation_link import generate_airbnb_link, generate_booking_link, generate_expedia_link
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
@@ -63,18 +63,24 @@ class ItineraryService:
                 )
 
         state = generate_main_itinerary(itinerary_data)
-        details_itinerary = state_to_dict(state)
+
+        details_itinerary = state.model_dump()
+
+        print(f"\n\ndetails_itinerary (model_dump): {details_itinerary}\n\n")
 
         # Set user_id if user is authenticated, otherwise use session_id
         user_id = str(user.id) if user else None
         session_id_to_use = None if user else (session_id or uuid.uuid4())
+
+        itinerary_metadata = itinerary_data.preferences.model_dump()
 
         db_itinerary = Itinerary(
             trip_name=itinerary_data.trip_name,
             duration_days=itinerary_data.duration_days,
             details_itinerary=details_itinerary,
             user_id=user_id,
-            session_id=session_id_to_use
+            session_id=session_id_to_use,
+            itinerary_metadata = itinerary_metadata
         )
 
         self.db.add(db_itinerary)
@@ -375,9 +381,8 @@ class ItineraryService:
         itinerary_agent.invoke(initial_state, config=config)
 
         raw_state = itinerary_agent.get_state(config)
-        state_dict = state_to_dict(raw_state)
 
-        return state_dict     
+        return raw_state.model_dump()     
 
 
     def send_agent_message(self, itinerary_id: uuid.UUID, thread_id: str, message: str):
@@ -488,7 +493,7 @@ class ItineraryService:
         }
 
         raw_state = itinerary_agent.get_state(config)
-        state_dict = state_to_dict(raw_state)
+        state_dict = raw_state.model_dump()
         if not is_valid_thread_state(state_dict):
             return False
 

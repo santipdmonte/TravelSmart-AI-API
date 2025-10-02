@@ -48,6 +48,7 @@ class Itinerary(Base):
     tags: Mapped[JSON] = mapped_column(JSON, nullable=True)  # Store as JSON array
     notes: Mapped[Text] = mapped_column(Text, nullable=True)
     details_itinerary: Mapped[JSON] = mapped_column(JSON, nullable=True)
+    itinerary_metadata: Mapped[JSON] = mapped_column(JSON, nullable=True)
     trip_name: Mapped[str] = mapped_column(String(200), nullable=False)
     visibility: Mapped[str] = mapped_column(String(20), nullable=False, default=VisibilityEnum.PRIVATE.value)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default=StatusEnum.DRAFT.value)

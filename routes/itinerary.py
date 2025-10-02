@@ -281,7 +281,6 @@ def generate_route(
 ):
     """Generate a route for an itinerary"""
     state = generate_route_ai(itinerary_data)
-    # details_itinerary = state_to_dict(state)
 
     return state
 
