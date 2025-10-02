@@ -12,7 +12,7 @@ import uuid
 from graphs.itinerary_graph import generate_main_itinerary
 from graphs.itinerary_agent import itinerary_agent
 from utils.agent import is_valid_thread_state
-from utils.utils import detect_hil_mode
+from utils.utils import detect_hil_mode, state_to_dict
 from utils.accommodation_link import generate_airbnb_link, generate_booking_link, generate_expedia_link
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
@@ -384,7 +384,7 @@ class ItineraryService:
 
         raw_state = itinerary_agent.get_state(config)
 
-        return raw_state.model_dump()     
+        return state_to_dict(raw_state)  
 
 
     def send_agent_message(self, itinerary_id: uuid.UUID, thread_id: str, message: str):
@@ -495,7 +495,7 @@ class ItineraryService:
         }
 
         raw_state = itinerary_agent.get_state(config)
-        state_dict = raw_state.model_dump()
+        state_dict = state_to_dict(raw_state)
         if not is_valid_thread_state(state_dict):
             return False
 
