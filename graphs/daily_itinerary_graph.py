@@ -1,4 +1,3 @@
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from typing import Annotated
 from langgraph.graph.message import add_messages
@@ -10,23 +9,44 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
 from pydantic import Field, BaseModel
 
+from langchain_google_genai import ChatGoogleGenerativeAI
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-pro",
+    temperature=0.4,
+    max_tokens=None,
+    timeout=None,
+    max_retries=2,
+)
+
 from dotenv import load_dotenv
 load_dotenv()
 
+class ActivityItineraryOutput(BaseModel):
+    titulo: str = Field(..., description="El titulo o nombre de la actividad propuesta")
+    descripcion: str = Field(..., description="La descripcion de la actividad (breve)")
+    horarios: str = Field(description="Los horarios de la actividad (rango o abrir/cerrar o recomendaciones)")
+    precio: str = Field(description="El precio de la actividad (aproximar si aplica)")
+    requisitos_reserva: str = Field(description="Los requisitos de reserva de la actividad (si aplica)")
+    enlace: str = Field(description="El enlace de la actividad (link de reserva o página oficial, evitar enlaces no oficiales)(si aplica)")
+    ubicacion: str = Field(description="La ubicacion de la actividad (dirección / barrio / zona)")
+    transporte_recomendado: str = Field(description="El transporte recomendado para la actividad desde la actividad previa")
 
 # Structured output
 class DailyItineraryOutput(BaseModel):
-    dia: str = Field(description="El dia del itinerario (1, 2, 3, etc.)")
-    ciudad: str = Field(description="La ciudad del dia correspondiente")
-    pais: str = Field(description="El pais del dia correspondiente")
-    titulo: str = Field(description="Titulo del dia correspondiente. 'Dia X - <Ciudad>: <Breve titulo del dia>'")
-    itinerario: str = Field(description="El itinerario completo del dia correspondiente en markdown")
+    dia: str = Field(..., description="El dia del itinerario (1, 2, 3, etc.)")
+    ciudad: str = Field(..., description="La ciudad del dia correspondiente")
+    pais: str = Field(..., description="El pais del dia correspondiente")
+    titulo: str = Field(..., description="Titulo del dia correspondiente. 'Dia X - <Ciudad>: <Breve titulo del dia>'")
+    actividades_mañana: list[ActivityItineraryOutput] = Field(description="Lista de actividades para la mañana (si aplica)")
+    actividades_tarde: list[ActivityItineraryOutput] = Field(..., description="Lista de actividades para la tarde")
+    actividades_noche: list[ActivityItineraryOutput] = Field(description="Lista de actividades para la noche (si aplica)")
+    # notas_dia: str = Field(description="Notas del dia correspondiente")
 
 class ItineraryOutput(BaseModel):
-    itinerario_diario: list[DailyItineraryOutput] = Field(description="Lista con el itinerario diario completo de cada dia")
-    resumen_itinerario: str = Field(description="Resumen del itinerario")
-    recomendaciones_generales: str = Field(description="Recomendaciones generales para el viaje")
-    actividades_extras: str = Field(description="Actividades extras para el viaje")
+    itinerario_diario: list[DailyItineraryOutput] = Field(..., description="Lista con el itinerario diario completo de cada dia")
+    resumen_itinerario: str = Field(..., description="Resumen del itinerario")
+    recomendaciones_generales: str = Field(..., description="Recomendaciones generales para el viaje")
+    actividades_extras: str = Field(..., description="Actividades no incluidas en el itinerario, que le pueden interesar al usuario")
 
 
 class CityState(TypedDict):
@@ -51,7 +71,8 @@ Rol: Experto en planificacion de viajes y guia de viajes.
 <Instructions>
 📌 Consideraciones clave:
 - Crea un itinerario de viaje detallado para cada dia.
-- El primer día suele tener menos tiempo disponible por la llegada a la ciudad.
+- El primer día suele tener menos tiempo disponible por la llegada a la ciudad. 
+- Las mañanas de los dias de cambio de destino, sugeri actividades livianas y flexibles en base a la hora de llegada y chekin del alojamiento.
 - Separa las actividades según el **momento del día recomendado** (mañana, tarde, noche). 
 - No uses horarios exactos, solo menciona **rangos de apertura o cierre** si son importantes.
 - Para cada actividad incluye: breve descripción, precios aproximados, duración sugerida, requisitos de reserva y ubicación.
@@ -64,7 +85,6 @@ Rol: Experto en planificacion de viajes y guia de viajes.
 - La respuesta final debe ser solo el itinerario, sin explicaciones adicionales.
 - La respuesta debe ser en formato markdown.
 
-Tienes un límite de 10 búsquedas web. Planifica las búsquedas y ejecútalas todas al mismo tiempo para obtener la información relevante.
 </Instructions>
 
 {OUTPUT_TEMPLATE}
@@ -93,13 +113,12 @@ Reglas de verificación y fuentes:
 - Citar/registrar la fuente más relevante para cada dato clave (horario/precio/reserva).
 
 Salida / restricciones:
-- La respuesta final debe ser **solo** el itinerario en markdown según OUTPUT_TEMPLATE.
+- La respuesta final debe ser **solo** el itinerario en markdown.
 - No usar horarios exactos; solo rangos de apertura/cierre cuando sea relevante.
 - Añadir al final sección "Extras fuera del itinerario" y "Recomendaciones prácticas" (transporte, seguridad, apps).
 - Si no hay resultados fiables para una actividad, marcar "información no verificada — confirmar en sitio oficial".
 
 Limitaciones y fallbacks:
-- Si se alcanza el límite de búsquedas antes de cubrir todos los elementos, priorizar: 1) imperdibles de cada día, 2) reservas necesarias, 3) transporte entre actividades; y marcar lo que quedó como "verificar".
 - No incluir enlaces no oficiales para reservas de tours o entradas (evitar revendedores).
 </Reasoning>
 """),
@@ -144,7 +163,6 @@ def generate_itineraries(state: ItinerariesState):
 
 
 
-llm = ChatOpenAI(model="gpt-5-mini")
 llm_structured = llm.with_structured_output(ItineraryOutput)
 llm_with_tools = llm.bind_tools([web_search])
 
