@@ -23,7 +23,7 @@ class DestinoState(BaseModel):
     pais_codigo: str = Field(..., description="Codigo del pais del destino. Ejemplo: 'AR', 'US', 'ES', etc")
     coordenadas: str = Field(..., description="Coordenadas del destino")
     dias_en_destino: int = Field(..., description="Cantidad de dias en el destino")
-    actividades_sugeridas: List[str] = Field(..., description="Listado de actividades sugeridas en el destino en base a las preferencias del usuario")
+    # actividades_sugeridas: List[str] = Field(..., description="Listado de actividades sugeridas en el destino en base a las preferencias del usuario")
     sugerencias_alojamiento: str = Field(..., description="Sugerencias de zonas de alojamiento en el destino en base a las preferencias del usuario")
 
 class ViajeStateInput(BaseModel):
