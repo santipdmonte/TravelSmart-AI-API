@@ -12,6 +12,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from pydantic import BaseModel, Field
 from tools.geocoding_tool import batch_geocode_attractions
 from tools.wikipedia_tool import batch_get_wikipedia_images
+from tools.web_search import web_search
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -47,6 +48,7 @@ class State(TypedDict):
     tmp_itinerary: str | None = None
     final_itinerary: str | None = None
     attractions_list: list[str] | None = None
+    itinerary_metadata: dict | None = None
     itineraries: list[ItineraryState]
     tool_calling: bool = False
     messages: Annotated[list[AnyMessage], add_messages]
@@ -104,26 +106,21 @@ La temporada del viaje es en verano.
 Para este viaje quieren tener un ritmo dinamico.
 """
 
-ITINERARY_METADATA =  {
-    "temporada": "verano",
-    "tipo_viaje": "en familia",
-    "ritmo_viaje": "dinamico",
-    "ocasion": None,
-    "vista_ciudad": "local",
-    "estilos_viaje": None,
-    "preferencias_comida": None,
-    "presupuesto": None,
-    "moneda_presupuesto": "USD",
-    "objetivo": "Conocer la gastronomia",
-    "notas": None
+ITINERARY_METADATA = {
+    "when": "summer",
+    "trip_type": "family_young_kids",
+    "city_view": "touristy",
+    "budget": "confort",
+    "travel_pace": "activo",
+    "goal": "Visitar disney con la familia",
   }
 
-def format_itinerary_metadata(itinerary_metadata: dict):
+# def format_itinerary_metadata(itinerary_metadata: dict):
     
-    response = ""
-    for key, value in itinerary_metadata.items():
-        response += f"{key}: {value}\n" if value else ""
-    return response
+#     response = ""
+#     for key, value in itinerary_metadata.model_dump().items():
+#         response += f"{key}: {value}\n" if value else ""
+#     return response
 
 
 def get_itinerary_prompt(state: State):
@@ -134,7 +131,7 @@ Rol: Experto en planificacion de viajes y guia de viajes.
 
 <Context>
 Tu objetivo es generar un itinerario útil para realizar en {state["city"]} durante {state["days"]} días.
-{ADDITIONAL_CONTEXT}
+{ITINERARY_METADATA}
 </Context>
 
 <Instructions>
@@ -236,7 +233,7 @@ def get_feedback_provider_prompt(itinerary: str):
     return [SystemMessage(content=f"""
     Eres un experto en planificacion de viajes, el encargado de proporcionar feedback sobre el itinerario de viaje.
     Considera el contexto adicional:
-    {ADDITIONAL_CONTEXT}
+    {ITINERARY_METADATA}
 
     <Itinerario de viaje>
     {itinerary}
@@ -349,30 +346,6 @@ def itinerary_attractions_data():#state: State):
     print(attractions_complete_data)
 
     # return {"attractions_data": attractions_complete_data}
-
-
-
-def web_search(query: str):
-    """
-    Search the web for the query.
-    """
-
-    # Search
-    tavily_search = TavilySearchResults(
-        max_results=2,
-        topic="general",
-    )
-    search_results = tavily_search.invoke(query)
-
-    # Format
-    formatted_results = "\n\n -- \n\n".join(
-        [
-            f"<Document href='{doc['url']}'/>\n{doc['content']}</Document>" 
-            for doc in search_results
-        ]
-    )
-
-    return {"messages": [formatted_results]}
 
 #  Nodes
 tools = [web_search]
