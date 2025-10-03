@@ -10,7 +10,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 import uuid
 from graphs.itinerary_graph import generate_main_itinerary
-from graphs.itinerary_agent import itinerary_agent
+from graphs.itinerary_chat_agent import itinerary_agent
 from utils.agent import is_valid_thread_state
 from utils.utils import detect_hil_mode, state_to_dict
 from utils.accommodation_link import generate_airbnb_link, generate_booking_link, generate_expedia_link
