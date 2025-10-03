@@ -114,8 +114,8 @@ class ItineraryPreferences(BaseModel):
     city_view: Optional[str] = Field(None, description="City view")
     travel_styles: Optional[List[str]] = Field(None, description="Travel styles")
     food_preferences: Optional[List[str]] = Field(None, description="Food preferences")
-    budget: Optional[float] = Field(None, description="Budget")
-    budget_currency: Optional[str] = Field(None, description="Budget currency")
+    budget: Optional[str] = Field(None, description="Budget type") # Economico, Intermedio, Confort, Lujo
+    travel_pace: Optional[str] = Field(None, description="Travel pace") # Relax, Equilibrado, Activo
     goal: Optional[str] = Field(None, description="Goal of the trip")
     notes: Optional[str] = Field(None, description="Notes")
 
@@ -124,6 +124,7 @@ class ItineraryGenerate(BaseModel):
     trip_name: str = Field(..., max_length=200, description="Name of the trip")
     duration_days: int = Field(..., ge=1, description="Duration of the trip in days")
     # Optional traveler profile to personalize generation (filled server-side from Traveler Test)
+    traveler_origin: Optional[str] = Field(None, description="Origin of the traveler")
     traveler_profile_name: Optional[str] = Field(None, description="Latest traveler type name for the user")
     traveler_profile_desc: Optional[str] = Field(None, description="Description used to steer itinerary generation")
     preferences: Optional[ItineraryPreferences] = Field(None, description="Preferences for the itinerary generation")
