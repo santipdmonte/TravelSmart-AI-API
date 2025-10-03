@@ -29,11 +29,6 @@ class ItineraryOutput(BaseModel):
     actividades_extras: str = Field(description="Actividades extras para el viaje")
 
 
-
-class ItineraryState(TypedDict):
-    itinerary: str
-    itinerary_resume: str
-
 class CityState(TypedDict):
     city: str
     days: str
