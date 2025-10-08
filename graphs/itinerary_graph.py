@@ -2,6 +2,7 @@ from langchain_openai import ChatOpenAI
 from prompts.itinerary_prompt import get_itinerary_prompt
 from schemas.itinerary import ItineraryGenerate
 from states.itinerary import ViajeState
+from utils.llm import llm
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -9,7 +10,6 @@ load_dotenv()
 
 def generate_main_itinerary(state: ItineraryGenerate):
 
-    llm = ChatOpenAI(model="gpt-5-mini")
     llm_structured = llm.with_structured_output(ViajeState)
     return llm_structured.invoke(get_itinerary_prompt(state))
 

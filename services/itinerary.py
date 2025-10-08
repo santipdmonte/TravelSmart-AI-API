@@ -1,15 +1,19 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy import and_, or_
 from models.itinerary import Itinerary
 from models.user import User
 from schemas.itinerary import ItineraryCreate, ItineraryUpdate, ItineraryGenerate
+from graphs.activities_city_map_reducer import ItineraryState
+from graphs.daily_itinerary_graph import graph as daily_itinerary_graph
 from typing import List, Optional
 from datetime import datetime, timedelta
 import uuid
 from graphs.itinerary_graph import generate_main_itinerary
-from graphs.itinerary_agent import itinerary_agent
+from graphs.itinerary_chat_agent import itinerary_agent
+from graphs.activities_chat_agent import activities_chat_agent
 from utils.agent import is_valid_thread_state
-from utils.utils import state_to_dict, detect_hil_mode
+from utils.utils import detect_hil_mode, state_to_dict
 from utils.accommodation_link import generate_airbnb_link, generate_booking_link, generate_expedia_link
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
@@ -60,18 +64,26 @@ class ItineraryService:
                 )
 
         state = generate_main_itinerary(itinerary_data)
-        details_itinerary = state_to_dict(state)
+        details_itinerary = state.model_dump()
+
+        print(f"\n\ndetails_itinerary (model_dump): {details_itinerary}\n\n")
 
         # Set user_id if user is authenticated, otherwise use session_id
         user_id = str(user.id) if user else None
         session_id_to_use = None if user else (session_id or uuid.uuid4())
+
+        itinerary_metadata = itinerary_data.preferences.model_dump()
+        itinerary_metadata["traveler_profile_name"] = traveler_type.name or None
+        itinerary_metadata["traveler_profile_prompt_desc"] = traveler_type.prompt_description or None
+        itinerary_metadata["traveler_profile_description"] = traveler_type.description or None
 
         db_itinerary = Itinerary(
             trip_name=itinerary_data.trip_name,
             duration_days=itinerary_data.duration_days,
             details_itinerary=details_itinerary,
             user_id=user_id,
-            session_id=session_id_to_use
+            session_id=session_id_to_use,
+            itinerary_metadata = itinerary_metadata
         )
 
         self.db.add(db_itinerary)
@@ -139,6 +151,106 @@ class ItineraryService:
                 Itinerary.deleted_at.is_(None)
             )
         ).offset(skip).limit(limit).all()
+
+
+    def itinerary_route_confirmed(self, itinerary_id: uuid.UUID) -> Optional[Itinerary]:
+        db_itinerary = self.get_itinerary_by_id(itinerary_id)
+        if not db_itinerary:
+            return None
+        
+        db_itinerary.status = "confirmed"
+        self.db.commit()
+        self.db.refresh(db_itinerary)
+
+        # import time
+        # time.sleep(10)
+
+        try:
+            db_itinerary = self.generate_itineraries_daily(itinerary_id)
+            # Force error
+            # raise Exception("Error generating itineraries daily")
+        except Exception as e:
+            print(f"\n\nError generating itineraries daily: {e}\n\n")
+            db_itinerary.status = "draft"
+            self.db.commit()
+            self.db.refresh(db_itinerary)
+            return None
+
+        return db_itinerary
+
+    def generate_itineraries_daily(self, itinerary_id: uuid.UUID) -> Optional[Itinerary]:
+        import time
+        time.sleep(10)
+        itinerary = self.get_itinerary_by_id(itinerary_id)
+        if not itinerary:
+            return None
+        
+        if not itinerary.details_itinerary:
+            return None
+        
+        cities = []
+        for destino in itinerary.details_itinerary["destinos"]:
+            cities.append({
+                "city": destino["ciudad"],
+                "days": destino["dias_en_destino"]
+            })
+
+        itinerary_metadata = itinerary.itinerary_metadata or {}
+        
+        final_itinerary = daily_itinerary_graph.invoke({"cities": cities, "itinerary_metadata": itinerary_metadata}).get("final_itinerary", None)
+        if not final_itinerary:
+            return None # TODO: Add error handling
+
+        final_itinerary_json = final_itinerary.model_dump()
+
+        itinerary.details_itinerary["itinerario_diario"] = final_itinerary_json["itinerario_diario"]
+        itinerary.details_itinerary["resumen_itinerario"] = final_itinerary_json["resumen_itinerario"]
+        itinerary.details_itinerary["recomendaciones_generales"] = final_itinerary_json["recomendaciones_generales"]
+        itinerary.details_itinerary["actividades_extras"] = final_itinerary_json["actividades_extras"]
+
+        flag_modified(itinerary, "details_itinerary") # For SQLAlchemy to detect the changes
+        self.db.commit()
+        self.db.refresh(itinerary)
+
+        return itinerary
+
+
+    # def add_itineraries_daily(self, itinerary_id: uuid.UUID, itineraries: List[ItineraryState]) -> Optional[Itinerary]:
+    #     db_itinerary = self.get_itinerary_by_id(itinerary_id)
+    #     if not db_itinerary:
+    #         return None
+        
+    #     if not db_itinerary.details_itinerary:
+    #         return None
+        
+    #     details = db_itinerary.details_itinerary
+        
+    #     if 'destinos' not in details:
+    #         return None
+        
+    #     itineraries_dict = {
+    #         itinerary['city']: {
+    #             'itinerario_diario': itinerary['itinerary'],
+    #             'itinerario_diario_resumen': itinerary['itinerary_resume']
+    #         }
+    #         for itinerary in itineraries
+    #     }
+        
+    #     for destino in details['destinos']:
+    #         ciudad = destino.get('ciudad')
+            
+    #         if ciudad and ciudad in itineraries_dict:
+    #             destino['itinerario_diario'] = itineraries_dict[ciudad]['itinerario_diario']
+    #             destino['itinerario_diario_resumen'] = itineraries_dict[ciudad]['itinerario_diario_resumen']
+        
+    #     db_itinerary.details_itinerary = details
+    #     flag_modified(db_itinerary, "details_itinerary") # For SQLAlchemy to detect the changes
+    #     self.db.commit()
+    #     self.db.refresh(db_itinerary)
+        
+    #     return db_itinerary
+        
+        
     
     def search_itineraries(self, query: str, skip: int = 0, limit: int = 100) -> List[Itinerary]:
         """Search itineraries by trip name or destination"""
@@ -287,9 +399,8 @@ class ItineraryService:
         itinerary_agent.invoke(initial_state, config=config)
 
         raw_state = itinerary_agent.get_state(config)
-        state_dict = state_to_dict(raw_state)
 
-        return state_dict     
+        return state_to_dict(raw_state)  
 
 
     def send_agent_message(self, itinerary_id: uuid.UUID, thread_id: str, message: str):
@@ -299,18 +410,26 @@ class ItineraryService:
             }
         }
 
-        agent_state = self.get_agent_state(thread_id)
+        status = self.get_itinerary_by_id(itinerary_id).status
+        if status == "confirmed":
+            agent = activities_chat_agent
+            agent_str = "activities_chat_agent"
+        else:
+            agent_str = "itinerary_agent"
+            agent = itinerary_agent
+
+        agent_state = self.get_agent_state(thread_id, agent_str)
         if not agent_state:
             self.initilize_agent(itinerary_id, thread_id, message)
-            return self.get_agent_state(thread_id)
+            return self.get_agent_state(thread_id, agent_str)
 
-        is_hil_mode, hil_message, state_values = detect_hil_mode(itinerary_agent, config)
+        is_hil_mode, hil_message, state_values = detect_hil_mode(agent, config)
 
         if is_hil_mode:
-            itinerary_agent.invoke(Command(resume={"messages": message}), config=config)
+            agent.invoke(Command(resume={"messages": message}), config=config)
 
             itinerary = self.get_itinerary_by_id(itinerary_id)
-            agent_state = self.get_agent_state(thread_id) # update the new agent state
+            agent_state = self.get_agent_state(thread_id, agent_str) # update the new agent state
 
             itinerary_update = ItineraryUpdate(
                 details_itinerary=agent_state[0]["itinerary"],
@@ -332,9 +451,9 @@ class ItineraryService:
 
             return agent_state
   
-        itinerary_agent.invoke({"messages": message}, config=config)
+        agent.invoke({"messages": message}, config=config)
 
-        return self.get_agent_state(thread_id)
+        return self.get_agent_state(thread_id, agent_str)
 
 
     def send_agent_message_stream(self, itinerary_id: uuid.UUID, thread_id: str, message: str):
@@ -344,7 +463,15 @@ class ItineraryService:
             }
         }
 
-        agent_state = self.get_agent_state(thread_id)
+        status = self.get_itinerary_by_id(itinerary_id).status
+        if status == "confirmed":
+            agent = activities_chat_agent
+            agent_str = "activities_chat_agent"
+        else:
+            agent = itinerary_agent
+            agent_str = "itinerary_agent"
+
+        agent_state = self.get_agent_state(thread_id, agent_str)
 
         # Initialize the agent if it doesn't exist
         if not agent_state: 
@@ -356,20 +483,20 @@ class ItineraryService:
 
         else:
 
-            is_hil_mode, hil_message, state_values = detect_hil_mode(itinerary_agent, config)
+            is_hil_mode, hil_message, state_values = detect_hil_mode(agent, config)
             if is_hil_mode:
                 state = Command(resume={"messages": message})
             else:
                 state = {"messages": message}
 
-        for chunk, metadata in itinerary_agent.stream(state, config=config, stream_mode="messages"):
+        for chunk, metadata in agent.stream(state, config=config, stream_mode="messages"):
             if chunk.content:
                 yield f"data: {json.dumps({'token': chunk.content})}\n\n"
 
         if agent_state and is_hil_mode:
 
             itinerary = self.get_itinerary_by_id(itinerary_id)
-            agent_state = self.get_agent_state(thread_id) # update the new agent state
+            agent_state = self.get_agent_state(thread_id, agent_str) # update the new agent state
 
             itinerary_update = ItineraryUpdate(
                 details_itinerary=agent_state[0]["itinerary"],
@@ -389,17 +516,23 @@ class ItineraryService:
 
             self.update_itinerary(itinerary_id, itinerary_update)
 
-        yield "data: [DONE]\n\n"     
+        yield "data: [DONE]\n\n"    
 
-
-    def get_agent_state(self, thread_id: str):
+    def get_agent_state(self, thread_id: str, agent_str: str):
         config: RunnableConfig = {
             "configurable": {
                 "thread_id": thread_id,
             }
         }
 
-        raw_state = itinerary_agent.get_state(config)
+        if agent_str == "itinerary_agent":
+            agent = itinerary_agent
+        elif agent_str == "activities_chat_agent":
+            agent = activities_chat_agent
+        else:
+            return False
+
+        raw_state = agent.get_state(config)
         state_dict = state_to_dict(raw_state)
         if not is_valid_thread_state(state_dict):
             return False

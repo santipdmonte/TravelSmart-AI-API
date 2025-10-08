@@ -59,3 +59,35 @@ def state_to_json(state):
 def state_to_dict(state):
     """Convert the state to a dictionary"""
     return json.loads(state_to_json(state))
+
+def update_activities_day(itinerary_dict: dict, new_activities_day_dict: dict, titulo_dia: str) -> dict | bool:
+    """
+    Update the activities in the itinerary based on the day title.
+    More robust version with better error handling.
+    
+    Args:
+        itinerary_dict: Dictionary containing the full itinerary structure from JSON
+        new_activities_day: New daily itinerary with updated activities
+        titulo_dia: Title of the day to update (must match exactly)
+    
+    Returns:
+        Updated itinerary dictionary if successful, False if day not found
+    """
+    try:
+        print(f"====\n \n Updating activities day: {itinerary_dict} \n ====")
+        print(f"====\n \n Updating activities day: {new_activities_day_dict} \n ====")
+
+        itinerario_diario = itinerary_dict['itinerario_diario']
+        
+        for i, day in enumerate(itinerario_diario):
+            if day.get('titulo') == titulo_dia:
+                itinerario_diario[i] = new_activities_day_dict
+                
+                return itinerary_dict
+        
+        return False
+        
+    except (KeyError, TypeError) as e:
+        # Handle missing keys or wrong structure
+        print(f"Error updating activities: {e}")
+        return False
