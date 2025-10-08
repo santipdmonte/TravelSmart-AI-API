@@ -1,9 +1,6 @@
 import json
 from pydantic.json import pydantic_encoder
 
-from states.itinerary import ViajeState
-from states.daily_activities import DailyItineraryOutput
-
 def extract_chatbot_message(state_info):
     """Helper function to extract chatbot message from state info"""
     chatbot_message = ""
@@ -63,7 +60,7 @@ def state_to_dict(state):
     """Convert the state to a dictionary"""
     return json.loads(state_to_json(state))
 
-def update_activities_day(itinerary_dict: dict, new_activities_day: DailyItineraryOutput, titulo_dia: str) -> dict | bool:
+def update_activities_day(itinerary_dict: dict, new_activities_day_dict: dict, titulo_dia: str) -> dict | bool:
     """
     Update the activities in the itinerary based on the day title.
     More robust version with better error handling.
@@ -77,11 +74,14 @@ def update_activities_day(itinerary_dict: dict, new_activities_day: DailyItinera
         Updated itinerary dictionary if successful, False if day not found
     """
     try:
-        itinerario_diario = itinerary_dict['details_itinerary']['itinerario_diario']
+        print(f"====\n \n Updating activities day: {itinerary_dict} \n ====")
+        print(f"====\n \n Updating activities day: {new_activities_day_dict} \n ====")
+
+        itinerario_diario = itinerary_dict['itinerario_diario']
         
         for i, day in enumerate(itinerario_diario):
             if day.get('titulo') == titulo_dia:
-                itinerario_diario[i] = new_activities_day.model_dump()
+                itinerario_diario[i] = new_activities_day_dict
                 
                 return itinerary_dict
         

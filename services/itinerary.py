@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import uuid
 from graphs.itinerary_graph import generate_main_itinerary
 from graphs.itinerary_chat_agent import itinerary_agent
+from graphs.activities_chat_agent import activities_chat_agent
 from utils.agent import is_valid_thread_state
 from utils.utils import detect_hil_mode, state_to_dict
 from utils.accommodation_link import generate_airbnb_link, generate_booking_link, generate_expedia_link
@@ -409,18 +410,26 @@ class ItineraryService:
             }
         }
 
-        agent_state = self.get_agent_state(thread_id)
+        status = self.get_itinerary_by_id(itinerary_id).status
+        if status == "confirmed":
+            agent = activities_chat_agent
+            agent_str = "activities_chat_agent"
+        else:
+            agent_str = "itinerary_agent"
+            agent = itinerary_agent
+
+        agent_state = self.get_agent_state(thread_id, agent_str)
         if not agent_state:
             self.initilize_agent(itinerary_id, thread_id, message)
-            return self.get_agent_state(thread_id)
+            return self.get_agent_state(thread_id, agent_str)
 
-        is_hil_mode, hil_message, state_values = detect_hil_mode(itinerary_agent, config)
+        is_hil_mode, hil_message, state_values = detect_hil_mode(agent, config)
 
         if is_hil_mode:
-            itinerary_agent.invoke(Command(resume={"messages": message}), config=config)
+            agent.invoke(Command(resume={"messages": message}), config=config)
 
             itinerary = self.get_itinerary_by_id(itinerary_id)
-            agent_state = self.get_agent_state(thread_id) # update the new agent state
+            agent_state = self.get_agent_state(thread_id, agent_str) # update the new agent state
 
             itinerary_update = ItineraryUpdate(
                 details_itinerary=agent_state[0]["itinerary"],
@@ -442,9 +451,9 @@ class ItineraryService:
 
             return agent_state
   
-        itinerary_agent.invoke({"messages": message}, config=config)
+        agent.invoke({"messages": message}, config=config)
 
-        return self.get_agent_state(thread_id)
+        return self.get_agent_state(thread_id, agent_str)
 
 
     def send_agent_message_stream(self, itinerary_id: uuid.UUID, thread_id: str, message: str):
@@ -454,7 +463,15 @@ class ItineraryService:
             }
         }
 
-        agent_state = self.get_agent_state(thread_id)
+        status = self.get_itinerary_by_id(itinerary_id).status
+        if status == "confirmed":
+            agent = activities_chat_agent
+            agent_str = "activities_chat_agent"
+        else:
+            agent = itinerary_agent
+            agent_str = "itinerary_agent"
+
+        agent_state = self.get_agent_state(thread_id, agent_str)
 
         # Initialize the agent if it doesn't exist
         if not agent_state: 
@@ -466,20 +483,20 @@ class ItineraryService:
 
         else:
 
-            is_hil_mode, hil_message, state_values = detect_hil_mode(itinerary_agent, config)
+            is_hil_mode, hil_message, state_values = detect_hil_mode(agent, config)
             if is_hil_mode:
                 state = Command(resume={"messages": message})
             else:
                 state = {"messages": message}
 
-        for chunk, metadata in itinerary_agent.stream(state, config=config, stream_mode="messages"):
+        for chunk, metadata in agent.stream(state, config=config, stream_mode="messages"):
             if chunk.content:
                 yield f"data: {json.dumps({'token': chunk.content})}\n\n"
 
         if agent_state and is_hil_mode:
 
             itinerary = self.get_itinerary_by_id(itinerary_id)
-            agent_state = self.get_agent_state(thread_id) # update the new agent state
+            agent_state = self.get_agent_state(thread_id, agent_str) # update the new agent state
 
             itinerary_update = ItineraryUpdate(
                 details_itinerary=agent_state[0]["itinerary"],
@@ -499,17 +516,23 @@ class ItineraryService:
 
             self.update_itinerary(itinerary_id, itinerary_update)
 
-        yield "data: [DONE]\n\n"     
+        yield "data: [DONE]\n\n"    
 
-
-    def get_agent_state(self, thread_id: str):
+    def get_agent_state(self, thread_id: str, agent_str: str):
         config: RunnableConfig = {
             "configurable": {
                 "thread_id": thread_id,
             }
         }
 
-        raw_state = itinerary_agent.get_state(config)
+        if agent_str == "itinerary_agent":
+            agent = itinerary_agent
+        elif agent_str == "activities_chat_agent":
+            agent = activities_chat_agent
+        else:
+            return False
+
+        raw_state = agent.get_state(config)
         state_dict = state_to_dict(raw_state)
         if not is_valid_thread_state(state_dict):
             return False

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -39,6 +39,7 @@ class ViajeState(BaseModel):
     resumen_viaje: str = Field(..., description="Resumen del viaje completo en base a las preferencias del usuario")
     destinos: List[DestinoState] = Field(..., description="Destinos del viaje completo en base a las preferencias del usuario")
     transportes_entre_destinos: Optional[List[TransporteEntreDestinosState]] = Field(..., description="Transportes entre destinos del viaje completo (si el viaje tiene mas de un destino)")
+    itinerario_diario: Optional[List[Dict[str, Any]]] = Field(None, description="JSON field containing itinerary daily details")
 
 class ViajeStateModify(BaseModel):
     itinerario_actual: ViajeState

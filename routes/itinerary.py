@@ -259,11 +259,17 @@ def send_message_to_itinerary_agent_stream(
 @itinerary_router.get("/agent/{thread_id}")
 def get_agent_state(
     thread_id: str,
+    itinerary_id: uuid.UUID,
     db: Session = Depends(get_db)
 ):
     """Get the state of an itinerary agent"""
     service = get_itinerary_service(db)
-    agent_state = service.get_agent_state(thread_id)
+    status = service.get_itinerary_by_id(itinerary_id).status
+    if status == "confirmed":
+        agent_str = "activities_chat_agent"
+    else:
+        agent_str = "itinerary_agent"
+    agent_state = service.get_agent_state(thread_id, agent_str)
     if not agent_state:
         raise HTTPException(status_code=404, detail="Agent thread not found or invalid")
     return agent_state

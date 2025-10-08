@@ -98,6 +98,7 @@ class ItineraryUpdate(BaseModel):
     trip_name: Optional[str] = Field(None, max_length=200, description="Name of the trip")
     visibility: Optional[VisibilityEnum] = Field(None, description="Visibility level of the itinerary")
     status: Optional[StatusEnum] = Field(None, description="Status of the itinerary")
+    itinerario_diario: Optional[List[Dict[str, Any]]] = Field(None, description="JSON field containing itinerary daily details")
     # transportation_id: Optional[uuid.UUID] = Field(None, description="UUID identifier of the associated transportation")
 
     class Config:
