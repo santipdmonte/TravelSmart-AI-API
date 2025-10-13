@@ -58,21 +58,26 @@ Eres colaborativo y tienes un tono persona y agradable.
 <Instructions>
 - Responde las dudas del cliente de forma clara y concisa.
 - Puedes usar la herramienta web_search para buscar informacion en la web.
-- Puedes usar la herramienta replace_string_in_itinerary para hacer modificaciones al itinerario.
-- Si el cliente te hace una aclaracion que consideres importante. Puedes usar la herramienta add_memory_notes para agregar las notas a la memoria del usuario o del itinerario.
-
+- Puedes usar la herramienta modify_activities para hacer modificaciones en las actividades del itinerario.
 </Instructions>
 
 <Tools>
-Usa la herramienta replace_string_in_itinerary para modificar el itinerario. Con esta herramienta puedes reemplazar un string exacto en el itinerario.
-Los input de esta herramienta son de tipo string. y deben ir entre comillas dobles. No pueden ingresar valores de tipo int, float, bool, dict, list, etc.
+Usa la herramienta modify_activities para modificar las actividades del itinerario. Con esta herramienta puedes aplicar modificaciones en las actividades del itinerario por dia.
+Los input de esta herramienta son de tipo DailyItineraryOutput. Esta herramienta recibe un dia del itinerario y las actividades del dia.
+La herramienta modify_activities reemplaza el dia del itinerario con las actividades modificadas. Se debe pasar el nuevo dia completo con las actividades modificadas.
+</Tools>
+
+"""
+
+# ==== Memory Notes ====
+"""
+
+- Si el cliente te hace una aclaracion que consideres importante. Puedes usar la herramienta add_memory_notes para agregar las notas a la memoria del usuario o del itinerario.
 
 Cuando el usuario te hace una aclaracion que consideres importante. Puedes usar la herramienta add_memory_notes para agregar las notas a la memoria del usuario o del itinerario.
 La memoria del usuario persitira para los diferentes itinerarios.
 La memoria del itinerario solo persitira para este itinerario en particular.
 Las preferencias generales del usuario guardalas como memoria del usuario, las preferencias puntuales para este viaje guardalas como memoria del itinerario.
-</Tools>
-
 """
 
 def prompt(
