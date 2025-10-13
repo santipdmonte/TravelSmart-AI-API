@@ -27,8 +27,8 @@ from langgraph.types import interrupt
 from utils.llm import llm, llm_cheap
 
 # Define model and checkpointer
-# model = ChatOpenAI(model="gpt-5-mini")
-model = llm
+model = ChatOpenAI(model="gpt-4o")
+# model = llm
 web_search_model = "gpt-5-mini"
 checkpointer = MemorySaver()
 
