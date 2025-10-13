@@ -73,9 +73,9 @@ class ItineraryService:
         session_id_to_use = None if user else (session_id or uuid.uuid4())
 
         itinerary_metadata = itinerary_data.preferences.model_dump()
-        itinerary_metadata["traveler_profile_name"] = traveler_type.name or None
-        itinerary_metadata["traveler_profile_prompt_desc"] = traveler_type.prompt_description or None
-        itinerary_metadata["traveler_profile_description"] = traveler_type.description or None
+        itinerary_metadata["traveler_profile_name"] = itinerary_data.traveler_profile_name or None
+        itinerary_metadata["traveler_profile_prompt_desc"] = itinerary_data.traveler_profile_desc or None
+        itinerary_metadata["traveler_profile_description"] = itinerary_data.traveler_profile_desc or None
 
         db_itinerary = Itinerary(
             trip_name=itinerary_data.trip_name,
