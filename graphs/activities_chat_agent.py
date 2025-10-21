@@ -196,7 +196,7 @@ def modify_activities(
             "itinerary": new_itinerary,
             "messages": [
                 ToolMessage(
-                    "✅ He actualizado tus actividades diarias exitosamente.",
+                    "",  # String vacío para evitar mostrar mensaje técnico al usuario
                     tool_call_id=tool_call_id
                 )
             ]
