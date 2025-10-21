@@ -49,6 +49,40 @@ if state.preferences else ""}
 - El nombre del origen y destino de cada transporte debe ser exactamente igual que el nombre en el destino de la ciudad.
 - Confirma que los códigos de país sean correctos (ISO 3166-1 alpha-2)
 - Asegura que los tipos de transporte sean válidos según el enum proporcionado
+
+### ⚠️ **CRÍTICO - TRANSPORTES ENTRE DESTINOS (SI HAY MÁS DE UN DESTINO):**
+
+**REGLA FUNDAMENTAL: Los transportes DEBEN seguir el orden EXACTO y SECUENCIAL de los destinos.**
+
+**Instrucciones obligatorias:**
+1. Si generas N destinos, debes generar EXACTAMENTE (N-1) transportes
+2. Cada transporte conecta el destino[i] con destino[i+1] siguiendo el orden del array
+3. NUNCA saltes destinos intermedios
+4. NUNCA repitas el mismo origen o destino en transportes diferentes
+
+**Ejemplo CORRECTO:**
+- Destinos: ["Buenos Aires", "Bariloche", "El Calafate", "Ushuaia"]
+- Transportes: 
+  1. Buenos Aires → Bariloche
+  2. Bariloche → El Calafate
+  3. El Calafate → Ushuaia
+- Total: 3 transportes (4 destinos - 1)
+
+**Ejemplo INCORRECTO:**
+- Destinos: ["Buenos Aires", "Bariloche", "El Calafate", "Ushuaia"]
+- Transportes:
+  1. Buenos Aires → Bariloche
+  2. Bariloche → El Calafate
+  3. Bariloche → Ushuaia  ❌ ERROR (salta El Calafate)
+- Este ejemplo está MAL porque el transporte 3 debería ser El Calafate → Ushuaia
+
+**Validación que DEBES aplicar ANTES de responder:**
+✅ transportes_entre_destinos[i].ciudad_origen == destinos[i].ciudad
+✅ transportes_entre_destinos[i].ciudad_destino == destinos[i+1].ciudad
+✅ len(transportes_entre_destinos) == len(destinos) - 1
+✅ El nombre del origen y destino de cada transporte debe ser EXACTAMENTE IGUAL que el nombre en el destino de la ciudad (case-sensitive)
+
+**Si tienes solo 1 destino:** NO generes ningún transporte (o genera un array vacío)
 """
 
     return PROMPT
