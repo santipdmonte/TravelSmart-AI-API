@@ -20,13 +20,8 @@ from langgraph.types import Command
 from langchain_core.messages import ToolMessage
 
 from states.itinerary import ViajeState
-from states.daily_activities import DailyItineraryOutput
 
 from langgraph.types import interrupt
-
-
-from utils.llm import llm, llm_cheap
-from utils.utils import update_activities_day
 
 # Define model and checkpointer
 model = ChatOpenAI(model="gpt-4o")
@@ -50,22 +45,82 @@ class CustomState(AgentState):
 
 # ==== Prompt ====
 PROMPT = """
-<Rols>
-Eres un asistente de viajes que ayuda a los usuarios a planificar sus viajes y a resolver sus dudas. 
-Eres colaborativo y tienes un tono persona y agradable.
+<Rol>
+Eres un asistente de viajes experto especializado en modificar **actividades diarias** de itinerarios.
+Tienes un tono colaborativo, personal y agradable, pero eres estricto con tus limitaciones.
 </Rol>
 
+<Context>
+El usuario ya ha CONFIRMADO su ruta principal (destinos, ciudades, duración y transporte entre ciudades).
+Ahora solo estás autorizado para ayudarlo a ajustar los detalles de su plan de actividades diarias.
+El itinerario de actividades actual está disponible en el estado del sistema.
+</Context>
+
 <Instructions>
-- Responde las dudas del cliente de forma clara y concisa.
-- Puedes usar la herramienta web_search para buscar informacion en la web.
-- Puedes usar la herramienta modify_activities para hacer modificaciones en las actividades del itinerario.
+1. Responde las dudas del cliente sobre sus actividades de forma clara y concisa.
+2. Puedes usar la herramienta `web_search` para buscar información actualizada (restaurantes, horarios de museos, eventos, etc.).
+3. Puedes usar la herramienta `modify_activities` para aplicar cambios en las actividades diarias.
 </Instructions>
 
 <Tools>
-Usa la herramienta modify_activities para modificar las actividades del itinerario. Con esta herramienta puedes aplicar modificaciones en las actividades del itinerario por dia.
-Los input de esta herramienta son de tipo DailyItineraryOutput. Esta herramienta recibe un dia del itinerario y las actividades del dia.
-La herramienta modify_activities reemplaza el dia del itinerario con las actividades modificadas. Se debe pasar el nuevo dia completo con las actividades modificadas.
+- **web_search**: Busca información en tiempo real para ayudar al usuario con recomendaciones de actividades.
+- **modify_activities**: Modifica las actividades diarias del itinerario. 
+  - Input: `new_itinerary` (ViajeState completo con las modificaciones en itinerario_diario aplicadas)
+  - Input: `new_itinerary_modifications_summary` (resumen de los cambios realizados)
+  - Esta herramienta recibe el objeto ViajeState COMPLETO.
+  - Debes pasar TODO el itinerario con las modificaciones ya aplicadas en la sección itinerario_diario.
+  - NO modifiques destinos, cantidad_dias, transportes_entre_destinos, etc. SOLO itinerario_diario.
 </Tools>
+
+<STRICT_RULES>
+⚠️ ESTA ES TU REGLA MÁS IMPORTANTE ⚠️
+
+**PROHIBIDO ABSOLUTAMENTE:**
+- ❌ Cambiar destinos o ciudades del viaje
+- ❌ Agregar o quitar días del viaje
+- ❌ Modificar la duración total del viaje
+- ❌ Cambiar la cantidad de días en cada destino
+- ❌ Modificar el transporte entre ciudades
+- ❌ Alterar el orden de los destinos
+- ❌ Usar la herramienta `apply_itinerary_modifications` (NO tienes acceso a ella)
+
+**PERMITIDO:**
+- ✅ Modificar actividades dentro de un día (museos, restaurantes, horarios)
+- ✅ Agregar o quitar actividades de un día específico
+- ✅ Cambiar el orden de actividades dentro de un día
+- ✅ Ajustar horarios de actividades
+- ✅ Responder preguntas sobre las actividades programadas
+- ✅ Buscar información sobre lugares o actividades
+
+**REGLAS ESPECIALES PARA MOVER ACTIVIDADES ENTRE DÍAS:**
+Puedes mover una actividad de un día a otro SOLO si se cumplen TODAS estas condiciones:
+1. ✅ Ambos días están en el MISMO destino/ciudad
+2. ✅ La actividad NO es la primera del día (no puede ser "Llegada a...", "Check-in", etc.)
+3. ✅ La actividad NO es la última del día (no puede ser "Viaje a...", "Check-out", "Salida hacia...", etc.)
+4. ✅ La actividad NO implica transporte entre destinos
+
+**ACTIVIDADES QUE NUNCA PUEDEN MOVERSE:**
+- ❌ Actividades de llegada ("Llegada a [ciudad]", "Check-in hotel", "Llegada al aeropuerto")
+- ❌ Actividades de salida ("Viaje a [ciudad]", "Check-out", "Salida hacia [ciudad]", "Traslado a aeropuerto")
+- ❌ Primera actividad de un destino nuevo
+- ❌ Última actividad antes de cambiar de destino
+- ❌ Cualquier actividad relacionada con transporte entre ciudades
+
+**ACCIÓN DE RECHAZO:**
+Si el usuario solicita algo de la lista "PROHIBIDO", debes rechazarlo amablemente con un mensaje como:
+
+"Entiendo tu solicitud, pero en esta etapa ya has confirmado la ruta principal (destinos y días). 
+Para cambios en la estructura del viaje (destinos, duración, transportes), necesitas volver a la fase de planificación.
+En este momento solo puedo ayudarte a ajustar las actividades diarias: cambiar restaurantes, agregar museos, 
+modificar horarios, etc. ¿Hay alguna actividad que quieras ajustar?"
+
+Si intenta mover una actividad de llegada/salida/transporte:
+"No puedo mover esa actividad porque está relacionada con el transporte entre destinos. Las actividades de llegada 
+y salida deben permanecer en su posición para mantener la coherencia del viaje. ¿Te gustaría modificar otras 
+actividades dentro del día?"
+
+Mantén siempre un tono amable pero firme al rechazar solicitudes fuera de tu alcance.
+</STRICT_RULES>
 
 """
 
@@ -110,52 +165,38 @@ def prompt(
 
 def modify_activities(
     tool_call_id: Annotated[str, InjectedToolCallId],
-    new_activities_day: DailyItineraryOutput = Field(..., description="Nuevo dia con las actividades modificadas"),
-    new_activities_day_modifications_summary: str = Field(..., description="Resumen de las modificaciones a realizar en el dia"),
-    titulo_dia: str = Field(..., description="El titulo del dia correspondiente. 'Dia X - <Ciudad>: <Breve titulo del dia>'"),
-    itinerary: Annotated[ViajeState | None, InjectedState("itinerary")] = None,
+    new_itinerary: ViajeState = Field(..., description="El itinerario COMPLETO actualizado, con todos los cambios en itinerario_diario aplicados"),
+    new_itinerary_modifications_summary: str = Field(..., description="Resumen de las modificaciones realizadas en las actividades diarias"),
 ) :
     """
-    Modify the itinerary.
+    Modifica las actividades diarias del itinerario.
     
-    input:
-        - new_activities_day: DailyItineraryOutput
-        - new_activities_day_modifications_summary: str
-        - titulo_dia: str
-        - itinerary: ViajeState
+    IMPORTANTE: Esta herramienta recibe el ViajeState COMPLETO con las modificaciones aplicadas.
+    Solo se debe usar para cambiar actividades diarias (itinerario_diario).
+    NO modificar destinos, días totales, ni transportes.
+    
+    Args:
+        - new_itinerary: ViajeState completo con itinerario_diario actualizado
+        - new_itinerary_modifications_summary: Resumen de los cambios realizados
     """
 
     user_feedback = interrupt(  
-        f"Se van a aplicar las siguientes modificaciones al dia: {new_activities_day_modifications_summary}. "
-        "¿Estás de acuerdo? [Si (s)] (Mencionar cambios si no estas de acuerdo)"
+        f"Se van a aplicar las siguientes modificaciones a tus actividades: {new_itinerary_modifications_summary}. "
+        "¿Estás de acuerdo? [Si (s)] (Mencionar cambios si no estás de acuerdo)"
     )
 
     user_feedback = user_feedback["messages"].lower()
 
-    print(f"====\n \n User feedback: {user_feedback} \n ====")
+    print(f"====\n \n User feedback (modify_activities): {user_feedback} \n ====")
 
     if user_feedback == "s" or user_feedback == "si":
-
-        new_itinerary = update_activities_day(itinerary.model_dump(), new_activities_day.model_dump(), titulo_dia)
-
-        print(f"====\n \n New itinerary: {new_itinerary} \n ====")
-
-        if not new_itinerary:
-            return Command(update={
-                "messages": [
-                    ToolMessage(
-                        "Error updating activities in the itinerary",
-                        tool_call_id=tool_call_id
-                    )
-                ]
-            })
-
+        # Actualizar el itinerario completo en el estado
+        # La persistencia en BD se maneja en services/itinerary.py
         return Command(update={
             "itinerary": new_itinerary,
-            # update the message history
             "messages": [
                 ToolMessage(
-                    "Successfully applied itinerary modifications",
+                    "✅ He actualizado tus actividades diarias exitosamente.",
                     tool_call_id=tool_call_id
                 )
             ]
@@ -165,7 +206,7 @@ def modify_activities(
         return Command(update={
             "messages": [
                 ToolMessage(
-                    f"El usuario no aceptó las modificaciones al itinerario, esta fue su respuesta: {user_feedback}",
+                    f"De acuerdo, no he aplicado los cambios. El usuario respondió: {user_feedback}",
                     tool_call_id=tool_call_id
                 )
             ]
