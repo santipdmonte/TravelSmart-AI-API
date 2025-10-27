@@ -125,6 +125,10 @@ class UserTravelerTestService:
             user = self.db.query(User).filter(User.id == test.user_id).first()
             if user:
                 user.traveler_type_id = traveler_type_id
+                # Get the TravelerType to copy its preferences
+                traveler_type = self.db.query(TravelerType).filter(TravelerType.id == traveler_type_id).first()
+                if traveler_type and traveler_type.preferences:
+                    user.preferences = traveler_type.preferences
         
         self.db.commit()
         self.db.refresh(test)
