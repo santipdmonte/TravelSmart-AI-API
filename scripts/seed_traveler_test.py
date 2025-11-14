@@ -17,6 +17,7 @@ import sys
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Dict, Iterator, List, Optional
+import json  # <-- AÑADIDO
 
 # Ensure project root (one level up from scripts/) is on sys.path
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -25,166 +26,25 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 
-"""
-PHASE 1: Centralized data structure for the Traveler Test.
+# --- INICIO: LÓGICA DE CARGA DE DATOS ---
+# Reemplaza el diccionario TRAVELER_TEST_DATA
+# Asume que 'seed_data.json' está en la misma carpeta 'scripts'
+DATA_FILE_PATH = os.path.join(CURRENT_DIR, "seed_data.json")
 
-NOTES:
-- Image URLs are examples from Unsplash (can be replaced with own assets).
-- Scores are in the range [-10, 10] (validated by a DB constraint).
+try:
+    with open(DATA_FILE_PATH, "r", encoding="utf-8") as f:
+        TRAVELER_TEST_DATA: Dict[str, List[Dict]] = json.load(f)
+except FileNotFoundError:
+    print(f"Error: No se encontró el archivo de datos 'seed_data.json' en {DATA_FILE_PATH}")
+    sys.exit(1)
+except json.JSONDecodeError:
+    print(f"Error: El archivo 'seed_data.json' tiene un formato JSON inválido.")
+    sys.exit(1)
+except Exception as e:
+    print(f"Error inesperado al cargar 'seed_data.json': {e}")
+    sys.exit(1)
 
-Structure:
-TRAVELER_TEST_DATA = {
-  'traveler_types': [
-     { name, description, prompt_description, image_url }
-  ],
-  'questions': [
-     {
-        'order': int,
-        'question': str,
-        'category': str,
-        'image_url': str | None,
-        'multi_select': bool,
-        'options': [
-           {
-              'option': str,
-              'description': str | None,
-              'image_url': str | None,
-              'scores': { traveler_type_name: int, ... }
-           }, ...
-        ]
-     }, ...
-  ]
-}
-"""
-
-TRAVELER_TEST_DATA: Dict[str, List[Dict]] = {
-    "traveler_types": [
-        {
-            "name": "Aventurero",
-            "description": "Amante de la adrenalina, la naturaleza y los desafíos físicos. No teme salir de su zona de confort.",
-            "prompt_description": "Priorizar actividades de alto impacto: deportes extremos, trekking en lugares remotos, exploración de naturaleza salvaje y opciones de transporte flexibles. Evitar itinerarios rígidos o demasiado turísticos.",
-            "image_url": None,
-        },
-        {
-            "name": "Explorador Cultural",
-            "description": "Apasionado por la historia, el arte, la arquitectura y las tradiciones locales. Disfruta aprendiendo en cada visita.",
-            "prompt_description": "Enfocar el itinerario en centros históricos, museos, galerías de arte, tours guiados, espectáculos locales y gastronomía tradicional. El ritmo puede ser intenso pero centrado en el conocimiento.",
-            "image_url": None,
-        },
-        {
-            "name": "Viajero Relajado",
-            "description": "Busca desconectar, descansar y recargar energías. Prefiere destinos y actividades que le aporten paz y tranquilidad.",
-            "prompt_description": "Crear itinerarios con un ritmo suave. Incluir días de playa, estancias en spas, paseos por la naturaleza sin presiones, tardes libres y cenas tranquilas. Evitar madrugones y agendas apretadas.",
-            "image_url": None,
-        },
-        {
-            "name": "Gourmet",
-            "description": "Su principal motivación para viajar es la comida. Desde mercados locales hasta restaurantes con estrellas Michelin.",
-            "prompt_description": "El viaje debe girar en torno a la gastronomía. Incluir reservas en restaurantes recomendados, tours de comida, clases de cocina, visitas a mercados y degustaciones de productos locales (vino, queso, etc.).",
-            "image_url": None,
-        },
-        {
-            "name": "Social y Nocturno",
-            "description": "Le encanta la vida nocturna, conocer gente y estar en el centro de la acción. Viaja para divertirse y socializar.",
-            "prompt_description": "Diseñar un plan que incluya recomendaciones de bares, discotecas, eventos y barrios con mucha vida nocturna. Sugerir actividades en grupo y hoteles con buen ambiente social.",
-            "image_url": None,
-        },
-        {
-            "name": "Romántico",
-            "description": "Viaja en pareja buscando momentos especiales, paisajes hermosos y experiencias íntimas. Ideal para lunas de miel o aniversarios.",
-            "prompt_description": "Crear un itinerario con cenas a la luz de las velas, hoteles boutique, paseos panorámicos, actividades para dos y momentos de privacidad. El ambiente debe ser especial y cuidado.",
-            "image_url": None,
-        },
-    ],
-    "questions": [
-        {
-            "order": 1,
-            "question": "¿Cuál es tu forma ideal de explorar un destino?",
-            "category": "Estilo de Exploración",
-            "multi_select": False,
-            "options": [
-                {
-                    "option": "Con un tour que me lleve a los lugares más famosos.",
-                    "scores": {"Aventurero": -2, "Explorador Cultural": 8, "Viajero Relajado": 5, "Gourmet": 3, "Social y Nocturno": 4, "Romántico": 6},
-                },
-                {
-                    "option": "Perdiéndome por rutas alternativas.",
-                    "scores": {"Aventurero": 10, "Explorador Cultural": 6, "Viajero Relajado": -2, "Gourmet": 4, "Social y Nocturno": 3, "Romántico": 4},
-                },
-                {
-                    "option": "Viviendo como un local, sin prisas.",
-                    "scores": {"Aventurero": 2, "Explorador Cultural": 7, "Viajero Relajado": 10, "Gourmet": 8, "Social y Nocturno": 5, "Romántico": 8},
-                },
-            ],
-        },
-        {
-            "order": 2,
-            "question": "Cuando piensas en el viaje perfecto, ¿qué palabra te viene a la mente?",
-            "category": "Interés Principal",
-            "multi_select": False,
-            "options": [
-                {"option": "Aventura", "scores": {"Aventurero": 10, "Explorador Cultural": 0, "Viajero Relajado": -5, "Gourmet": -1, "Social y Nocturno": 3, "Romántico": 2}},
-                {"option": "Cultura", "scores": {"Aventurero": 0, "Explorador Cultural": 10, "Viajero Relajado": 2, "Gourmet": 4, "Social y Nocturno": 1, "Romántico": 5}},
-                {"option": "Relajación", "scores": {"Aventurero": -5, "Explorador Cultural": 2, "Viajero Relajado": 10, "Gourmet": 3, "Social y Nocturno": -2, "Romántico": 8}},
-                {"option": "Sabores", "scores": {"Aventurero": 2, "Explorador Cultural": 4, "Viajero Relajado": 3, "Gourmet": 10, "Social y Nocturno": 5, "Romántico": 6}},
-                {"option": "Fiesta", "scores": {"Aventurero": 3, "Explorador Cultural": -2, "Viajero Relajado": -4, "Gourmet": 2, "Social y Nocturno": 10, "Romántico": 1}},
-                {"option": "Romance", "scores": {"Aventurero": 1, "Explorador Cultural": 5, "Viajero Relajado": 8, "Gourmet": 6, "Social y Nocturno": 2, "Romántico": 10}},
-                {"option": "Adrenalina", "scores": {"Aventurero": 10, "Social y Nocturno": 4, "Viajero Relajado": -6, "Romántico": 1}},
-            ],
-        },
-        {
-            "order": 3,
-            "question": "La gastronomía en tu viaje es...",
-            "category": "Gastronomía",
-            "multi_select": False,
-            "options": [
-                {"option": "La razón principal de mi viaje.", "scores": {"Aventurero": 1, "Explorador Cultural": 5, "Viajero Relajado": 4, "Gourmet": 10, "Social y Nocturno": 5, "Romántico": 7}},
-                {"option": "Importante, me gusta probar de todo.", "scores": {"Aventurero": 6, "Explorador Cultural": 8, "Viajero Relajado": 6, "Gourmet": 7, "Social y Nocturno": 6, "Romántico": 8}},
-                {"option": "Solo una forma de reponer energías.", "scores": {"Aventurero": 4, "Explorador Cultural": -3, "Viajero Relajado": 2, "Gourmet": -5, "Social y Nocturno": 3, "Romántico": 1}},
-                {"option": "Prefiero opciones baratas y al paso.", "scores": {"Aventurero": 7, "Explorador Cultural": 2, "Viajero Relajado": 3, "Gourmet": 1, "Social y Nocturno": 6, "Romántico": 2}},
-            ],
-        },
-        {
-            "order": 4,
-            "question": "¿Qué ritmo de viaje te identifica más?",
-            "category": "Ritmo",
-            "multi_select": False,
-            "options": [
-                {"option": "Intenso: quiero aprovechar cada segundo.", "scores": {"Aventurero": 10, "Explorador Cultural": 7, "Viajero Relajado": -5, "Gourmet": 5, "Social y Nocturno": 8, "Romántico": 2}},
-                {"option": "Equilibrado: mezclando actividades con ocio.", "scores": {"Aventurero": 5, "Explorador Cultural": 8, "Viajero Relajado": 6, "Gourmet": 8, "Social y Nocturno": 6, "Romántico": 8}},
-                {"option": "Relajado: la improvisación es mi lema.", "scores": {"Aventurero": -2, "Explorador Cultural": 3, "Viajero Relajado": 10, "Gourmet": 6, "Social y Nocturno": 4, "Romántico": 10}},
-            ],
-        },
-        {
-            "order": 5,
-            "question": "Por la noche, prefieres...",
-            "category": "Vida Nocturna",
-            "multi_select": False,
-            "options": [
-                {"option": "Salir a bares y vivir la escena local.", "scores": {"Aventurero": 4, "Explorador Cultural": 3, "Viajero Relajado": -2, "Gourmet": 4, "Social y Nocturno": 10, "Romántico": 3}},
-                {"option": "Tener una cena especial y tranquila.", "scores": {"Aventurero": 2, "Explorador Cultural": 7, "Viajero Relajado": 8, "Gourmet": 9, "Social y Nocturno": 3, "Romántico": 10}},
-                {"option": "Descansar en el hotel para el día siguiente.", "scores": {"Aventurero": 5, "Explorador Cultural": 5, "Viajero Relajado": 10, "Gourmet": 3, "Social y Nocturno": -3, "Romántico": 6}},
-                {"option": "Asistir a un espectáculo o evento cultural.", "scores": {"Aventurero": 1, "Explorador Cultural": 9, "Viajero Relajado": 5, "Gourmet": 6, "Social y Nocturno": 4, "Romántico": 7}},
-            ],
-        },
-        {
-            "order": 6,
-            "question": "Selecciona las actividades que más te interesan (puedes elegir varias):",
-            "category": "Intereses Directos",
-            "multi_select": True,
-            "options": [
-                {"option": "Playas", "scores": {"Viajero Relajado": 5, "Romántico": 3}},
-                {"option": "Turismo urbano", "scores": {"Explorador Cultural": 7, "Social y Nocturno": 3}},
-                {"option": "Aventuras al aire libre", "scores": {"Aventurero": 8, "Social y Nocturno": 2}},
-                {"option": "Festivales/eventos", "scores": {"Social y Nocturno": 8, "Explorador Cultural": 4}},
-                {"option": "Exploración gastronómica", "scores": {"Gourmet": 8, "Explorador Cultural": 3}},
-                {"option": "Vida nocturna", "scores": {"Social y Nocturno": 8, "Aventurero": 2}},
-                {"option": "Compras", "scores": {"Social y Nocturno": 5, "Romántico": 4}},
-                {"option": "Spa y bienestar", "scores": {"Viajero Relajado": 9, "Romántico": 4}},
-            ],
-        },
-    ],
-}
+# --- FIN: LÓGICA DE CARGA DE DATOS ---
 
 
 # --- Database Models (assuming they are in the 'models' package) ---
