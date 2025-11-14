@@ -190,6 +190,7 @@ class User(Base):
         index=True,
     )
     traveler_type = relationship("TravelerType", back_populates="users", passive_deletes=True)
+    preferences: Mapped[JSON] = mapped_column(JSON, nullable=True)
     
     def __str__(self):
         return self.email

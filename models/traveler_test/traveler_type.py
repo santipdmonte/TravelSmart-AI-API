@@ -1,5 +1,5 @@
 from database import Base
-from sqlalchemy import String, CheckConstraint, DateTime
+from sqlalchemy import String, CheckConstraint, DateTime, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
@@ -13,6 +13,7 @@ class TravelerType(Base):
     description: Mapped[str] = mapped_column(String(500), nullable=True)
     prompt_description: Mapped[str] = mapped_column(String(1000), nullable=True)
     image_url: Mapped[str] = mapped_column(String(500), nullable=True)
+    preferences: Mapped[JSON] = mapped_column(JSON, nullable=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     deleted_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
