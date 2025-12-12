@@ -2,7 +2,7 @@
 
 Backend de TravelSmart, la plataforma para crear tu viaje ideal sin morir en el intento, potenciada por IA.
 
-Este repositorio contiene la API de backend construida con FastAPI que da servicio a la aplicación [TravelSmart Frontend](https://github.com/santipdmonte/travelsmart) (Nota: Reemplaza este enlace por la URL de tu frontend si es pública).
+Este repositorio contiene la API de backend construida con FastAPI que da servicio a la aplicación [TravelSmart Frontend](https://github.com/santipdmonte/travelsmart) 
 
 La API se encarga de:
 -   Generar itinerarios de viaje personalizados usando agentes de IA (LangGraph).
