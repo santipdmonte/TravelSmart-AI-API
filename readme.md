@@ -154,3 +154,82 @@ POST /api/traveler-test/submit
 
 POST /api/document-analyzer/analyze
 👉 Recibe un archivo (PDF, PNG, etc.) y extrae información de la reserva.
+
+## Esquema base de datos
+
+```mermaid
+erDiagram
+    Users {
+        UUID id PK
+        string email UK
+        string password_hash
+        string username UK
+        string display_name
+        UUID traveler_type_id FK
+        string status
+        string role
+        bool email_verified
+    }
+
+    TravelerTypes {
+        UUID id PK
+        string name UK
+        string description
+        string prompt_description
+    }
+
+    UserTravelerTests {
+        UUID id PK
+        UUID user_id FK
+        UUID traveler_type_id FK
+        datetime started_at
+        datetime completed_at
+    }
+
+    Questions {
+        UUID id PK
+        string question
+        int order
+        string category
+        bool multi_select
+    }
+
+    QuestionOptions {
+        UUID id PK
+        UUID question_id FK
+        string option
+    }
+
+    UserAnswers {
+        UUID id PK
+        UUID user_traveler_test_id FK
+        UUID question_option_id FK
+    }
+
+    QuestionOptionScores {
+        UUID id PK
+        UUID question_option_id FK
+        UUID traveler_type_id FK
+        int score
+    }
+
+    Itineraries {
+        UUID itinerary_id PK
+        string user_id FK "Nullable"
+        UUID session_id "Nullable"
+        string trip_name
+        json details_itinerary
+        string status
+        string visibility
+    }
+
+    Users ||--o{ UserTravelerTests : "takes"
+    Users ||--o{ Itineraries : "creates"
+    TravelerTypes ||--|{ Users : "has a"
+    TravelerTypes ||--o{ UserTravelerTests : "results in"
+    UserTravelerTests ||--|{ UserAnswers : "is composed of"
+    Questions ||--|{ QuestionOptions : "has"
+    QuestionOptions ||--|{ UserAnswers : "is chosen in"
+    QuestionOptions ||--o{ QuestionOptionScores : "has"
+    TravelerTypes ||--o{ QuestionOptionScores : "is scored by"
+```
