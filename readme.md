@@ -155,7 +155,9 @@ POST /api/traveler-test/submit
 POST /api/document-analyzer/analyze
 👉 Recibe un archivo (PDF, PNG, etc.) y extrae información de la reserva.
 
-## Esquema base de datos
+## 🗄️ Esquema de Datos
+
+El siguiente diagrama ilustra el modelo de dominio central utilizado para la generación de itinerarios y la elaboración del perfil del usuario.
 
 ```mermaid
 erDiagram
@@ -164,11 +166,14 @@ erDiagram
         string email UK
         string password_hash
         string username UK
+        string full_name
         string display_name
-        UUID traveler_type_id FK
-        string status
         string role
-        bool email_verified
+        boolean is_google_account
+        string[] visited_countries
+        UUID traveler_type_id FK
+        timestamp created_at
+        timestamp updated_at
     }
 
     TravelerTypes {
@@ -176,34 +181,28 @@ erDiagram
         string name UK
         string description
         string prompt_description
+        json preferences
     }
 
     UserTravelerTests {
         UUID id PK
         UUID user_id FK
         UUID traveler_type_id FK
-        datetime started_at
-        datetime completed_at
+        timestamp created_at
     }
 
     Questions {
         UUID id PK
-        string question
+        string text
         int order
         string category
-        bool multi_select
+        boolean multi_select
     }
 
     QuestionOptions {
         UUID id PK
         UUID question_id FK
-        string option
-    }
-
-    UserAnswers {
-        UUID id PK
-        UUID user_traveler_test_id FK
-        UUID question_option_id FK
+        string text
     }
 
     QuestionOptionScores {
@@ -213,23 +212,65 @@ erDiagram
         int score
     }
 
-    Itineraries {
-        UUID itinerary_id PK
-        string user_id FK "Nullable"
-        UUID session_id "Nullable"
-        string trip_name
-        json details_itinerary
-        string status
-        string visibility
+    UserAnswers {
+        UUID id PK
+        UUID user_traveler_test_id FK
+        UUID question_option_id FK
     }
 
+    Itineraries {
+        UUID id PK
+        string user_id FK "Nullable"
+        string session_id "Nullable"
+        string trip_name
+        json details_itinerary
+        json metadata
+        string status
+        string visibility
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Accommodations {
+        UUID id PK
+        UUID itinerary_id FK
+        string name
+        string address
+        timestamp check_in
+        timestamp check_out
+        float price
+        string currency
+        json reservation_details
+    }
+
+    Transportation {
+        UUID id PK
+        UUID itinerary_id FK
+        string type
+        timestamp departure_time
+        timestamp arrival_time
+        string origin
+        string destination
+        string carrier
+        json reservation_details
+    }
+
+    %% Relationships
     Users ||--o{ UserTravelerTests : "takes"
     Users ||--o{ Itineraries : "creates"
-    TravelerTypes ||--|{ Users : "has a"
+    TravelerTypes ||--|{ Users : "classifies"
     TravelerTypes ||--o{ UserTravelerTests : "results in"
-    UserTravelerTests ||--|{ UserAnswers : "is composed of"
+    
+    UserTravelerTests ||--|{ UserAnswers : "contains"
     Questions ||--|{ QuestionOptions : "has"
-    QuestionOptions ||--|{ UserAnswers : "is chosen in"
-    QuestionOptions ||--o{ QuestionOptionScores : "has"
-    TravelerTypes ||--o{ QuestionOptionScores : "is scored by"
+    QuestionOptions ||--|{ UserAnswers : "selected in"
+    QuestionOptions ||--o{ QuestionOptionScores : "has score"
+    TravelerTypes ||--o{ QuestionOptionScores : "scored by"
+
+    Itineraries ||--o{ Accommodations : "includes"
+    Itineraries ||--o{ Transportation : "includes"
 ```
+
+> **ℹ️ Nota sobre el modelo de datos:**
+> El diagrama anterior representa el dominio central para la generación de itinerarios y el perfilado de viajeros.
+> Para mantener la claridad arquitectónica, se han omitido de esta vista las tablas auxiliares (como TokenBlocklist para seguridad), los registros de auditoría y ciertos atributos utilizados para análisis de negocio e inteligencia de mercado.
